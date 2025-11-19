@@ -20,7 +20,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
         }
 
         // GET: Sections
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index()    
         {
             var teacher_Evaluation_System__Golden_Success_College_Context = _context.Section.Include(s => s.Level);
             ViewBag.LevelId = new SelectList(_context.Level, "LevelId", "LevelName");
