@@ -28,5 +28,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Models
         // Navigation: Evaluations for this teacher
         public ICollection<Evaluation>? Evaluations { get; set; }
 
+        public ICollection<Enrollment>? Enrollments { get; set; }
+
     }
 }

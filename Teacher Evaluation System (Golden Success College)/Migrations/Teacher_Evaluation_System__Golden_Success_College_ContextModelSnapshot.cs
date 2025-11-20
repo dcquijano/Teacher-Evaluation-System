@@ -39,6 +39,39 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                     b.ToTable("Criteria");
                 });
 
+            modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Enrollment", b =>
+                {
+                    b.Property<int>("EnrollmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EnrollmentId"));
+
+                    b.Property<int>("StudentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SubjectId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("TeacherId1")
+                        .HasColumnType("int");
+
+                    b.HasKey("EnrollmentId");
+
+                    b.HasIndex("StudentId");
+
+                    b.HasIndex("SubjectId");
+
+                    b.HasIndex("TeacherId");
+
+                    b.HasIndex("TeacherId1");
+
+                    b.ToTable("Enrollment");
+                });
+
             modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Evaluation", b =>
                 {
                     b.Property<int>("EvaluationId")
@@ -309,7 +342,6 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Password")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("RoleId")
@@ -320,6 +352,37 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("User");
+                });
+
+            modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Enrollment", b =>
+                {
+                    b.HasOne("Teacher_Evaluation_System__Golden_Success_College_.Models.Student", "Student")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("StudentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Teacher_Evaluation_System__Golden_Success_College_.Models.Subject", "Subject")
+                        .WithMany("Enrollments")
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Teacher_Evaluation_System__Golden_Success_College_.Models.Teacher", "Teacher")
+                        .WithMany()
+                        .HasForeignKey("TeacherId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Teacher_Evaluation_System__Golden_Success_College_.Models.Teacher", null)
+                        .WithMany("Enrollments")
+                        .HasForeignKey("TeacherId1");
+
+                    b.Navigation("Student");
+
+                    b.Navigation("Subject");
+
+                    b.Navigation("Teacher");
                 });
 
             modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Evaluation", b =>
@@ -478,13 +541,22 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                     b.Navigation("Subjects");
                 });
 
+            modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Student", b =>
+                {
+                    b.Navigation("Enrollments");
+                });
+
             modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Subject", b =>
                 {
+                    b.Navigation("Enrollments");
+
                     b.Navigation("Evaluations");
                 });
 
             modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Teacher", b =>
                 {
+                    b.Navigation("Enrollments");
+
                     b.Navigation("Evaluations");
                 });
 #pragma warning restore 612, 618

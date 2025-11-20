@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using Teacher_Evaluation_System__Golden_Success_College_.Data;
 
 namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
@@ -13,7 +14,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             _context = context;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
             if (!User.Identity!.IsAuthenticated)
                 return RedirectToAction("Login", "Auth");
@@ -23,22 +24,41 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             // =============== ADMIN & SUPER ADMIN ==================
             if (role == "Admin" || role == "Super Admin")
             {
-                ViewBag.TotalTeachers = _context.Teacher.Count();
-                ViewBag.TotalStudents = _context.Student.Count();
-                ViewBag.TotalEvaluations = _context.Evaluation.Count();
+                ViewBag.TotalTeachers = await _context.Teacher.CountAsync();
+                ViewBag.TotalStudents = await _context.Student.CountAsync();
+                ViewBag.TotalEvaluations = await _context.Evaluation.CountAsync();
 
-                return View("Index");   // <-- FIXED HERE
+                return View();   // Model not needed for admin
             }
 
             // ====================== STUDENT =======================
             if (role == "Student")
             {
-                var teachers = _context.Teacher
-                    .Where(t => t.IsActive)
-                    .Include(t => t.Level)
-                    .ToList();
+                // Get logged-in student ID
+                string userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+                if (!int.TryParse(userIdString, out int studentId))
+                    return RedirectToAction("AccessDenied", "Auth");
 
-                return View("Index", teachers);  // <-- FIXED HERE
+                // Get teacher IDs assigned to this student's enrollments
+                var enrolledTeacherIds = await _context.Enrollment
+                                                       .Where(e => e.StudentId == studentId)
+                                                       .Select(e => e.TeacherId)
+                                                       .ToListAsync();
+
+                // Get teachers not yet evaluated by this student
+                var evaluatedTeacherIds = await _context.Evaluation
+                                                        .Where(e => e.StudentId == studentId)
+                                                        .Select(e => e.TeacherId)
+                                                        .ToListAsync();
+
+                var teachersToEvaluate = await _context.Teacher
+                                                       .Where(t => enrolledTeacherIds.Contains(t.TeacherId)) // only enrolled teachers
+                                                       .Where(t => !evaluatedTeacherIds.Contains(t.TeacherId)) // not yet evaluated
+                                                       .Include(t => t.Level)
+                                                       .ToListAsync();
+
+                return View(teachersToEvaluate);
+
             }
 
             // ========== UNKNOWN ROLE → DENIED ACCESS ===============

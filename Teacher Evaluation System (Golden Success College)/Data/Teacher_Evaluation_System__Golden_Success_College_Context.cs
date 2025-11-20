@@ -26,6 +26,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Data
         public DbSet<Teacher_Evaluation_System__Golden_Success_College_.Models.Section> Section { get; set; } = default!;
         public DbSet<Teacher_Evaluation_System__Golden_Success_College_.Models.Level> Level { get; set; } = default!;
 
+        public DbSet<Teacher_Evaluation_System__Golden_Success_College_.Models.Enrollment> Enrollment { get; set; } = default!;
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -55,7 +57,28 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Data
                 .WithMany()
                 .HasForeignKey(t => t.LevelId)
                 .OnDelete(DeleteBehavior.Restrict); // or DeleteBehavior.NoAction
+
+            modelBuilder.Entity<Enrollment>()
+                .HasOne(e => e.Student)
+                .WithMany(s => s.Enrollments)
+                .HasForeignKey(e => e.StudentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Enrollment>()
+                .HasOne(e => e.Subject)
+                .WithMany(s => s.Enrollments)
+                .HasForeignKey(e => e.SubjectId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Enrollment>()
+               .HasOne(e => e.Teacher)
+               .WithMany()
+               .HasForeignKey(e => e.TeacherId)
+               .OnDelete(DeleteBehavior.Restrict);
+
+
         }
+
 
     }
 }

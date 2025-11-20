@@ -159,8 +159,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
                 DateEvaluated = DateTime.Now
             };
 
-            // Populate dropdowns
-            await PopulateDropdowns(teacherId, subjectId, actualStudentId);
+            // Populate dropdowns based on enrollment
+            await PopulateEnrollmentDropdowns(teacherId, subjectId, actualStudentId);
 
             return View(viewModel);
         }
@@ -198,6 +198,17 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             if (model.SubjectId <= 0)
             {
                 ModelState.AddModelError("SubjectId", "Please select a subject.");
+            }
+
+            // Validate enrollment exists
+            var enrollmentExists = await _context.Enrollment
+                .AnyAsync(e => e.StudentId == model.StudentId
+                            && e.TeacherId == model.TeacherId
+                            && e.SubjectId == model.SubjectId);
+
+            if (!enrollmentExists)
+            {
+                ModelState.AddModelError("", "Invalid evaluation: The selected student is not enrolled with this teacher for this subject.");
             }
 
             if (ModelState.IsValid)
@@ -499,79 +510,101 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // AJAX endpoint to get subjects for a teacher
+        // AJAX endpoint to get subjects for a teacher based on enrollment
         [HttpGet]
-        public async Task<JsonResult> GetTeacherSubjects(int teacherId)
+        public async Task<JsonResult> GetEnrolledSubjects(int teacherId, int? studentId = null)
         {
-            // Get distinct subjects this teacher has been evaluated on
-            var subjects = await _context.Evaluation
+            var query = _context.Enrollment
                 .Where(e => e.TeacherId == teacherId)
                 .Include(e => e.Subject)
-                .Select(e => e.Subject)
-                .Distinct()
-                .OrderBy(s => s!.SubjectName)
-                .Select(s => new {
-                    value = s!.SubjectId,
-                    text = s.SubjectName
-                })
-                .ToListAsync();
+                .AsQueryable();
 
-            // If no evaluations exist yet, return all subjects
-            if (!subjects.Any())
-            {
-                subjects = await _context.Subject
-                    .OrderBy(s => s.SubjectName)
-                    .Select(s => new {
-                        value = s.SubjectId,
-                        text = s.SubjectName
-                    })
-                    .ToListAsync();
-            }
+            if (studentId.HasValue && studentId.Value > 0)
+                query = query.Where(e => e.StudentId == studentId.Value);
+
+            var subjects = await query
+                .Select(e => e.Subject!)
+                .Distinct()
+                .OrderBy(s => s.SubjectName)
+                .Select(s => new { value = s.SubjectId, text = s.SubjectName })
+                .ToListAsync();
 
             return Json(subjects);
         }
 
-        private async Task PopulateDropdowns(int? teacherId = null, int? subjectId = null, int? studentId = null)
+
+        // AJAX endpoint to get enrolled students for a teacher and subject
+        [HttpGet]
+        public async Task<JsonResult> GetEnrolledStudents(int teacherId, int? subjectId = null)
+        {
+            var query = _context.Enrollment
+                .Where(e => e.TeacherId == teacherId)
+                .Include(e => e.Student)
+                .AsQueryable();
+
+            if (subjectId.HasValue && subjectId.Value > 0)
+                query = query.Where(e => e.SubjectId == subjectId.Value);
+
+            var students = await query
+                .Select(e => e.Student!)
+                .Distinct()
+                .OrderBy(s => s.FullName)
+                .Select(s => new { value = s.StudentId, text = s.FullName })
+                .ToListAsync();
+
+            return Json(students);
+        }
+
+
+        // Helper method to populate dropdowns based on enrollment
+        private async Task PopulateEnrollmentDropdowns(int? teacherId = null, int? subjectId = null, int? studentId = null)
         {
             var isAdminOrSuperAdmin = User.IsInRole("Admin") || User.IsInRole("Super Admin");
+            var loggedInUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+            var userType = User.FindFirstValue("UserType");
 
-            ViewBag.Teachers = new SelectList(
-                await _context.Teacher
-                    .Where(t => t.IsActive)
-                    .OrderBy(t => t.FullName)
-                    .ToListAsync(),
-                "TeacherId",
-                "FullName",
-                teacherId
-            );
-
-            ViewBag.Subjects = new SelectList(
-                await _context.Subject.OrderBy(s => s.SubjectName).ToListAsync(),
-                "SubjectId",
-                "SubjectName",
-                subjectId
-            );
-
-            if (isAdminOrSuperAdmin)
+            // Teachers dropdown
+            if (userType == "Student" && !isAdminOrSuperAdmin)
             {
-                ViewBag.Students = new SelectList(
-                    await _context.Student.OrderBy(s => s.FullName).ToListAsync(),
-                    "StudentId",
-                    "FullName",
-                    studentId
-                );
+                // Only teachers the student is enrolled with
+                var enrolledTeachers = await _context.Enrollment
+                    .Where(e => e.StudentId == loggedInUserId)
+                    .Include(e => e.Teacher)
+                    .Select(e => e.Teacher!)
+                    .Where(t => t.IsActive)
+                    .Distinct()
+                    .OrderBy(t => t.FullName)
+                    .ToListAsync();
+
+                ViewBag.Teachers = new SelectList(enrolledTeachers, "TeacherId", "FullName", teacherId);
             }
             else
             {
-                // For Students: only include their own record
-                var loggedInUserId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
-                var student = await _context.Student.FindAsync(loggedInUserId);
+                // Admin sees all teachers
+                var allTeachers = await _context.Teacher
+                    .Where(t => t.IsActive)
+                    .OrderBy(t => t.FullName)
+                    .ToListAsync();
+                ViewBag.Teachers = new SelectList(allTeachers, "TeacherId", "FullName", teacherId);
+            }
 
+            // Subjects dropdown is loaded dynamically via AJAX
+            ViewBag.Subjects = new SelectList(Enumerable.Empty<Subject>(), "SubjectId", "SubjectName", subjectId);
+
+            // Students dropdown
+            if (isAdminOrSuperAdmin)
+            {
+                ViewBag.Students = new SelectList(Enumerable.Empty<Student>(), "StudentId", "FullName", studentId);
+            }
+            else
+            {
+                var student = await _context.Student.FindAsync(loggedInUserId);
                 ViewBag.Students = student != null
                     ? new SelectList(new List<Student> { student }, "StudentId", "FullName", studentId)
                     : new SelectList(Enumerable.Empty<Student>(), "StudentId", "FullName");
             }
         }
+
 
 
         // Helper method to redirect back to Create with errors
@@ -634,7 +667,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
                 CriteriaGroups = criteriaGroups
             };
 
-            await PopulateDropdowns(model.TeacherId, model.SubjectId, model.StudentId);
+            await PopulateEnrollmentDropdowns(model.TeacherId, model.SubjectId, model.StudentId);
             return View("Create", viewModel);
         }
     }

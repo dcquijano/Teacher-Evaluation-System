@@ -22,8 +22,12 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Models
         [ForeignKey(nameof(TeacherId))]
         public Teacher? Teacher { get; set; }
 
+
+
         public string? Schedule { get; set; } // e.g., "MWF 10:00-11:30"
 
         public ICollection<Evaluation>? Evaluations { get; set; }
+
+        public ICollection<Enrollment>? Enrollments { get; set; }
     }
 }

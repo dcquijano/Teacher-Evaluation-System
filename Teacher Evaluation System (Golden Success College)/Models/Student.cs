@@ -35,5 +35,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Models
 
         [ForeignKey(nameof(RoleId))]
         public Role? Role { get; set; }
+
+        // ⭐ ADD THIS
+        public ICollection<Enrollment>? Enrollments { get; set; }
     }
 }

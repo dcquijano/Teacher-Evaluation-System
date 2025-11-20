@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
 {
     /// <inheritdoc />
-    public partial class TES : Migration
+    public partial class Eval111 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -57,8 +57,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                 {
                     QuestionId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CriteriaId = table.Column<int>(type: "int", nullable: false)
+                    CriteriaId = table.Column<int>(type: "int", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -122,7 +122,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Password = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     RoleId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -145,7 +145,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                     FullName = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Password = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Level = table.Column<int>(type: "int", nullable: false),
+                    LevelId = table.Column<int>(type: "int", nullable: false),
                     SectionId = table.Column<int>(type: "int", nullable: true),
                     CollegeYearLevel = table.Column<int>(type: "int", nullable: true),
                     RoleId = table.Column<int>(type: "int", nullable: false)
@@ -153,6 +153,12 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Student", x => x.StudentId);
+                    table.ForeignKey(
+                        name: "FK_Student_Level_LevelId",
+                        column: x => x.LevelId,
+                        principalTable: "Level",
+                        principalColumn: "LevelId",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Student_Role_RoleId",
                         column: x => x.RoleId,
@@ -193,6 +199,45 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                         principalTable: "Teacher",
                         principalColumn: "TeacherId",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Enrollment",
+                columns: table => new
+                {
+                    EnrollmentId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StudentId = table.Column<int>(type: "int", nullable: false),
+                    SubjectId = table.Column<int>(type: "int", nullable: false),
+                    TeacherId = table.Column<int>(type: "int", nullable: false),
+                    TeacherId1 = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Enrollment", x => x.EnrollmentId);
+                    table.ForeignKey(
+                        name: "FK_Enrollment_Student_StudentId",
+                        column: x => x.StudentId,
+                        principalTable: "Student",
+                        principalColumn: "StudentId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Enrollment_Subject_SubjectId",
+                        column: x => x.SubjectId,
+                        principalTable: "Subject",
+                        principalColumn: "SubjectId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Enrollment_Teacher_TeacherId",
+                        column: x => x.TeacherId,
+                        principalTable: "Teacher",
+                        principalColumn: "TeacherId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Enrollment_Teacher_TeacherId1",
+                        column: x => x.TeacherId1,
+                        principalTable: "Teacher",
+                        principalColumn: "TeacherId");
                 });
 
             migrationBuilder.CreateTable(
@@ -259,6 +304,26 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Enrollment_StudentId",
+                table: "Enrollment",
+                column: "StudentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Enrollment_SubjectId",
+                table: "Enrollment",
+                column: "SubjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Enrollment_TeacherId",
+                table: "Enrollment",
+                column: "TeacherId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Enrollment_TeacherId1",
+                table: "Enrollment",
+                column: "TeacherId1");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Evaluation_StudentId",
                 table: "Evaluation",
                 column: "StudentId");
@@ -291,6 +356,11 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_Section_LevelId",
                 table: "Section",
+                column: "LevelId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Student_LevelId",
+                table: "Student",
                 column: "LevelId");
 
             migrationBuilder.CreateIndex(
@@ -327,6 +397,9 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "Enrollment");
+
             migrationBuilder.DropTable(
                 name: "Score");
 
