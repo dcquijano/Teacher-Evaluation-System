@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
 {
     /// <inheritdoc />
-    public partial class Eval111 : Migration
+    public partial class Evaluation : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -181,6 +181,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                     SubjectName = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SubjectCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     SectionId = table.Column<int>(type: "int", nullable: false),
+                    LevelId = table.Column<int>(type: "int", nullable: false),
                     TeacherId = table.Column<int>(type: "int", nullable: false),
                     Schedule = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
@@ -188,11 +189,17 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                 {
                     table.PrimaryKey("PK_Subject", x => x.SubjectId);
                     table.ForeignKey(
+                        name: "FK_Subject_Level_LevelId",
+                        column: x => x.LevelId,
+                        principalTable: "Level",
+                        principalColumn: "LevelId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_Subject_Section_SectionId",
                         column: x => x.SectionId,
                         principalTable: "Section",
                         principalColumn: "SectionId",
-                        onDelete: ReferentialAction.Cascade);
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_Subject_Teacher_TeacherId",
                         column: x => x.TeacherId,
@@ -209,8 +216,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StudentId = table.Column<int>(type: "int", nullable: false),
                     SubjectId = table.Column<int>(type: "int", nullable: false),
-                    TeacherId = table.Column<int>(type: "int", nullable: false),
-                    TeacherId1 = table.Column<int>(type: "int", nullable: true)
+                    TeacherId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -232,12 +238,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                         column: x => x.TeacherId,
                         principalTable: "Teacher",
                         principalColumn: "TeacherId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Enrollment_Teacher_TeacherId1",
-                        column: x => x.TeacherId1,
-                        principalTable: "Teacher",
-                        principalColumn: "TeacherId");
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -319,11 +320,6 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                 column: "TeacherId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Enrollment_TeacherId1",
-                table: "Enrollment",
-                column: "TeacherId1");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Evaluation_StudentId",
                 table: "Evaluation",
                 column: "StudentId");
@@ -372,6 +368,11 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                 name: "IX_Student_SectionId",
                 table: "Student",
                 column: "SectionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Subject_LevelId",
+                table: "Subject",
+                column: "LevelId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Subject_SectionId",

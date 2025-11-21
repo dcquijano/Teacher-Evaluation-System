@@ -22,8 +22,37 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
         // GET: Subjects
         public async Task<IActionResult> Index()
         {
-            var teacher_Evaluation_System__Golden_Success_College_Context = _context.Subject.Include(s => s.Section).Include(s => s.Teacher);
-            return View(await teacher_Evaluation_System__Golden_Success_College_Context.ToListAsync());
+            var subjects = await _context.Subject
+                .Include(s => s.Level)
+                .Include(s => s.Section)
+                    .ThenInclude(sec => sec.Level)
+                .Include(s => s.Teacher)
+                .ToListAsync();
+
+            // Load levels for dropdown
+            ViewData["LevelId"] = new SelectList(await _context.Level.ToListAsync(), "LevelId", "LevelName");
+
+            // Load sections with their Level for grouping
+            var sections = await _context.Section.Include(s => s.Level).ToListAsync();
+
+            // Convert to SelectListItem with Group (optgroup)
+            var sectionSelectList = sections.Select(s => new SelectListItem
+            {
+                Value = s.SectionId.ToString(),
+                Text = s.SectionName,
+                Group = new SelectListGroup { Name = s.Level.LevelName } // College, Senior High, Junior High
+            }).ToList();
+
+            ViewData["SectionId"] = sectionSelectList;
+
+            // Load teachers for dropdown
+            ViewData["TeacherId"] = new SelectList(
+                await _context.Teacher.ToListAsync(),
+                "TeacherId",
+                "FullName"
+            );
+
+            return View(subjects);
         }
 
         // GET: Subjects/Details/5
@@ -35,9 +64,12 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             }
 
             var subject = await _context.Subject
+                .Include(s => s.Level)
                 .Include(s => s.Section)
+                    .ThenInclude(sec => sec.Level)
                 .Include(s => s.Teacher)
                 .FirstOrDefaultAsync(m => m.SubjectId == id);
+
             if (subject == null)
             {
                 return NotFound();
@@ -47,19 +79,31 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
         }
 
         // GET: Subjects/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            ViewData["SectionId"] = new SelectList(_context.Set<Section>(), "SectionId", "SectionName");
-            ViewData["TeacherId"] = new SelectList(_context.Teacher, "TeacherId", "Department");
+            // Load levels for dropdown
+            ViewData["LevelId"] = new SelectList(await _context.Level.ToListAsync(), "LevelId", "LevelName");
+
+            // Load sections with their Level for grouping
+            var sections = await _context.Section.Include(s => s.Level).ToListAsync();
+
+            var sectionSelectList = sections.Select(s => new SelectListItem
+            {
+                Value = s.SectionId.ToString(),
+                Text = s.SectionName,
+                Group = new SelectListGroup { Name = s.Level.LevelName }
+            }).ToList();
+
+            ViewData["SectionId"] = sectionSelectList;
+            ViewData["TeacherId"] = new SelectList(await _context.Teacher.ToListAsync(), "TeacherId", "FullName");
+
             return View();
         }
 
         // POST: Subjects/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("SubjectId,SubjectName,SubjectCode,SectionId,TeacherId,Schedule")] Subject subject)
+        public async Task<IActionResult> Create([Bind("SubjectId,SubjectName,SubjectCode,LevelId,SectionId,TeacherId,Schedule")] Subject subject)
         {
             if (ModelState.IsValid)
             {
@@ -67,8 +111,21 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["SectionId"] = new SelectList(_context.Set<Section>(), "SectionId", "SectionName", subject.SectionId);
-            ViewData["TeacherId"] = new SelectList(_context.Teacher, "TeacherId", "Department", subject.TeacherId);
+
+            // Reload dropdowns
+            ViewData["LevelId"] = new SelectList(await _context.Level.ToListAsync(), "LevelId", "LevelName", subject.LevelId);
+
+            var sections = await _context.Section.Include(s => s.Level).ToListAsync();
+            var sectionSelectList = sections.Select(s => new SelectListItem
+            {
+                Value = s.SectionId.ToString(),
+                Text = s.SectionName,
+                Group = new SelectListGroup { Name = s.Level.LevelName }
+            }).ToList();
+
+            ViewData["SectionId"] = sectionSelectList;
+            ViewData["TeacherId"] = new SelectList(await _context.Teacher.ToListAsync(), "TeacherId", "FullName", subject.TeacherId);
+
             return View(subject);
         }
 
@@ -85,17 +142,29 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             {
                 return NotFound();
             }
-            ViewData["SectionId"] = new SelectList(_context.Set<Section>(), "SectionId", "SectionName", subject.SectionId);
-            ViewData["TeacherId"] = new SelectList(_context.Teacher, "TeacherId", "Department", subject.TeacherId);
+
+            // Load levels
+            ViewData["LevelId"] = new SelectList(await _context.Level.ToListAsync(), "LevelId", "LevelName", subject.LevelId);
+
+            // Load sections with grouping
+            var sections = await _context.Section.Include(s => s.Level).ToListAsync();
+            var sectionSelectList = sections.Select(s => new SelectListItem
+            {
+                Value = s.SectionId.ToString(),
+                Text = s.SectionName,
+                Group = new SelectListGroup { Name = s.Level.LevelName }
+            }).ToList();
+
+            ViewData["SectionId"] = sectionSelectList;
+            ViewData["TeacherId"] = new SelectList(await _context.Teacher.ToListAsync(), "TeacherId", "FullName", subject.TeacherId);
+
             return View(subject);
         }
 
         // POST: Subjects/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("SubjectId,SubjectName,SubjectCode,SectionId,TeacherId,Schedule")] Subject subject)
+        public async Task<IActionResult> Edit(int id, [Bind("SubjectId,SubjectName,SubjectCode,LevelId,SectionId,TeacherId,Schedule")] Subject subject)
         {
             if (id != subject.SubjectId)
             {
@@ -122,8 +191,21 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["SectionId"] = new SelectList(_context.Set<Section>(), "SectionId", "SectionName", subject.SectionId);
-            ViewData["TeacherId"] = new SelectList(_context.Teacher, "TeacherId", "Department", subject.TeacherId);
+
+            // Reload dropdowns
+            ViewData["LevelId"] = new SelectList(await _context.Level.ToListAsync(), "LevelId", "LevelName", subject.LevelId);
+
+            var sections = await _context.Section.Include(s => s.Level).ToListAsync();
+            var sectionSelectList = sections.Select(s => new SelectListItem
+            {
+                Value = s.SectionId.ToString(),
+                Text = s.SectionName,
+                Group = new SelectListGroup { Name = s.Level.LevelName }
+            }).ToList();
+
+            ViewData["SectionId"] = sectionSelectList;
+            ViewData["TeacherId"] = new SelectList(await _context.Teacher.ToListAsync(), "TeacherId", "FullName", subject.TeacherId);
+
             return View(subject);
         }
 
@@ -136,9 +218,12 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             }
 
             var subject = await _context.Subject
+                .Include(s => s.Level)
                 .Include(s => s.Section)
+                    .ThenInclude(sec => sec.Level)
                 .Include(s => s.Teacher)
                 .FirstOrDefaultAsync(m => m.SubjectId == id);
+
             if (subject == null)
             {
                 return NotFound();

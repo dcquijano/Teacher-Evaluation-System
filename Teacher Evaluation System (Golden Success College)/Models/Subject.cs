@@ -18,6 +18,10 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Models
         [ForeignKey(nameof(SectionId))]
         public Section? Section { get; set; }
 
+        public int LevelId { get; set; }
+        [ForeignKey(nameof(LevelId))]
+        public Level? Level { get; set; }
+
         public int TeacherId { get; set; }
         [ForeignKey(nameof(TeacherId))]
         public Teacher? Teacher { get; set; }

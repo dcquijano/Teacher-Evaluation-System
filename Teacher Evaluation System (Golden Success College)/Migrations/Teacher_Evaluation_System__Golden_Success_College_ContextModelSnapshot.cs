@@ -261,6 +261,9 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubjectId"));
 
+                    b.Property<int>("LevelId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Schedule")
                         .HasColumnType("nvarchar(max)");
 
@@ -280,6 +283,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("SubjectId");
+
+                    b.HasIndex("LevelId");
 
                     b.HasIndex("SectionId");
 
@@ -471,10 +476,16 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
 
             modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Subject", b =>
                 {
+                    b.HasOne("Teacher_Evaluation_System__Golden_Success_College_.Models.Level", "Level")
+                        .WithMany("Subjects")
+                        .HasForeignKey("LevelId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.HasOne("Teacher_Evaluation_System__Golden_Success_College_.Models.Section", "Section")
                         .WithMany("Subjects")
                         .HasForeignKey("SectionId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("Teacher_Evaluation_System__Golden_Success_College_.Models.Teacher", "Teacher")
@@ -482,6 +493,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
                         .HasForeignKey("TeacherId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Level");
 
                     b.Navigation("Section");
 
@@ -518,6 +531,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Migrations
             modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Level", b =>
                 {
                     b.Navigation("Sections");
+
+                    b.Navigation("Subjects");
                 });
 
             modelBuilder.Entity("Teacher_Evaluation_System__Golden_Success_College_.Models.Role", b =>

@@ -102,25 +102,32 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="SectionId" class="form-label">Section</label>
-                            <select class="form-select" id="SectionId" name="SectionId">
+                            <label for="SectionId" class="form-label">Section <span class="text-danger">*</span></label>
+                            <select class="form-select" id="SectionId" name="SectionId" required>
                                 <option value="">-- Select Section --</option>
                                 @if (ViewData["SectionId"] != null)
                                 {
                                     var sections = ViewData["SectionId"] as IEnumerable<SelectListItem>;
-                                    foreach (var sec in sections)
+                                    var groupedSections = sections.GroupBy(s => s.Group.Name);
+
+                                    foreach (var group in groupedSections)
                                     {
-                                        <option value="@sec.Value">@sec.Text</option>
+                                        <optgroup label="@group.Key">
+                                            @foreach (var sec in group)
+                                            {
+                                                <option value="@sec.Value" data-level="@group.Key">@sec.Text</option>
+                                            }
+                                        </optgroup>
                                     }
                                 }
                             </select>
-                            <small class="form-text text-muted">For Junior High and Senior High only.</small>
+                            <small class="form-text text-muted" id="sectionHelpText">Select the appropriate section/program for the student.</small>
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-md-6 mb-3" id="collegeYearContainer">
-                            <label for="CollegeYearLevel" class="form-label">College Year Level</label>
+                        <div class="col-md-6 mb-3" id="collegeYearContainer" style="display:none;">
+                            <label for="CollegeYearLevel" class="form-label">College Year Level <span class="text-danger">*</span></label>
                             <select class="form-select" id="CollegeYearLevel" name="CollegeYearLevel">
                                 <option value="0">N/A</option>
                                 <option value="1">1st Year</option>
@@ -128,7 +135,7 @@
                                 <option value="3">3rd Year</option>
                                 <option value="4">4th Year</option>
                             </select>
-                            <small class="form-text text-muted">Only applicable for College level students.</small>
+                            <small class="form-text text-muted">Required for College level students.</small>
                         </div>
                     </div>
                 </form>
@@ -166,15 +173,19 @@
             var toastMessage = $('#toastMessage');
             var loadingOverlay = $('#loadingOverlay');
 
-            // Store all sections for filtering
+            // Store all sections with their level information
             var allSections = [];
-            $('#SectionId option').each(function() {
-                if ($(this).val()) {
-                    allSections.push({
-                        value: $(this).val(),
-                        text: $(this).text()
-                    });
-                }
+            $('#SectionId optgroup').each(function() {
+                var levelName = $(this).attr('label');
+                $(this).find('option').each(function() {
+                    if ($(this).val()) {
+                        allSections.push({
+                            value: $(this).val(),
+                            text: $(this).text(),
+                            level: levelName
+                        });
+                    }
+                });
             });
 
             function showToast(message, bgClass = 'bg-success') {
@@ -192,37 +203,93 @@
                 var $sectionSelect = $('#SectionId');
                 var currentValue = $sectionSelect.val();
 
-                // Clear existing options except the first one
-                $sectionSelect.find('option:not(:first)').remove();
+                // Clear all options and optgroups
+                $sectionSelect.empty();
+                $sectionSelect.append('<option value="">-- Select Section --</option>');
 
-                if (!levelName) return;
+                if (!levelName) {
+                    // Show all sections grouped by level
+                    rebuildAllSections();
+                    return;
+                }
 
                 var levelLower = levelName.toLowerCase();
                 var filteredSections = [];
 
-                if (levelLower.includes('junior')) {
+                if (levelLower.includes('college')) {
+                    // Show only College sections (BSHM, BSIT, etc.)
+                    filteredSections = allSections.filter(s =>
+                        s.level.toLowerCase().includes('college')
+                    );
+                } else if (levelLower.includes('junior')) {
                     // Show only Junior High sections
-                    filteredSections = allSections.filter(s => s.text.toLowerCase().includes('junior'));
+                    filteredSections = allSections.filter(s =>
+                        s.level.toLowerCase().includes('junior')
+                    );
                 } else if (levelLower.includes('senior')) {
                     // Show only Senior High sections
-                    filteredSections = allSections.filter(s => s.text.toLowerCase().includes('senior'));
-                } else if (levelLower.includes('college')) {
-                    // No sections for college
-                    filteredSections = [];
+                    filteredSections = allSections.filter(s =>
+                        s.level.toLowerCase().includes('senior')
+                    );
                 } else {
                     // Show all sections if level type is unclear
                     filteredSections = allSections;
                 }
 
-                // Add filtered sections back
+                // Group filtered sections by level
+                var grouped = {};
                 filteredSections.forEach(function(sec) {
-                    $sectionSelect.append(`<option value="${sec.value}">${sec.text}</option>`);
+                    if (!grouped[sec.level]) {
+                        grouped[sec.level] = [];
+                    }
+                    grouped[sec.level].push(sec);
                 });
 
-                // Restore previous value if it still exists
+                // Add grouped sections back with optgroups
+                Object.keys(grouped).forEach(function(levelName) {
+                    var $optgroup = $('<optgroup>').attr('label', levelName);
+                    grouped[levelName].forEach(function(sec) {
+                        $optgroup.append(
+                            $('<option>')
+                                .attr('value', sec.value)
+                                .attr('data-level', sec.level)
+                                .text(sec.text)
+                        );
+                    });
+                    $sectionSelect.append($optgroup);
+                });
+
+                // Restore previous value if it still exists in filtered list
                 if (currentValue && $sectionSelect.find(`option[value="${currentValue}"]`).length > 0) {
                     $sectionSelect.val(currentValue);
+                } else {
+                    $sectionSelect.val('');
                 }
+            }
+
+            function rebuildAllSections() {
+                var $sectionSelect = $('#SectionId');
+                var grouped = {};
+
+                allSections.forEach(function(sec) {
+                    if (!grouped[sec.level]) {
+                        grouped[sec.level] = [];
+                    }
+                    grouped[sec.level].push(sec);
+                });
+
+                Object.keys(grouped).forEach(function(levelName) {
+                    var $optgroup = $('<optgroup>').attr('label', levelName);
+                    grouped[levelName].forEach(function(sec) {
+                        $optgroup.append(
+                            $('<option>')
+                                .attr('value', sec.value)
+                                .attr('data-level', sec.level)
+                                .text(sec.text)
+                        );
+                    });
+                    $sectionSelect.append($optgroup);
+                });
             }
 
             var studentModalEl = document.getElementById('studentModal');
@@ -234,22 +301,28 @@
 
             // Toggle section and college year level visibility based on selected level
             $('#LevelId').change(function () {
-                var selectedText = $(this).find('option:selected').text().toLowerCase();
+                var selectedText = $(this).find('option:selected').text();
 
                 // Filter sections based on level
-                filterSections($(this).find('option:selected').text());
+                filterSections(selectedText);
 
-                if (selectedText.includes('college')) {
-                    // College: hide section, show college year
-                    $('#SectionId').val('').prop('required', false).closest('.col-md-6').hide();
+                if (selectedText.toLowerCase().includes('college')) {
+                    // College: show section (for BSHM, BSIT), show college year, both required
+                    $('#SectionId').closest('.col-md-6').show();
+                    $('#SectionId').prop('required', true);
+                    $('#sectionHelpText').text('Select the program (e.g., BSHM, BSIT).');
                     $('#collegeYearContainer').show();
+                    $('#CollegeYearLevel').prop('required', true);
                     if ($('#CollegeYearLevel').val() == '0' || !$('#CollegeYearLevel').val()) {
                         $('#CollegeYearLevel').val('1');
                     }
                 } else {
-                    // JHS/SHS: show section, hide college year
-                    $('#SectionId').closest('.col-md-6').show().find('select').prop('required', true);
+                    // JHS/SHS: show section, hide college year, section required
+                    $('#SectionId').closest('.col-md-6').show();
+                    $('#SectionId').prop('required', true);
+                    $('#sectionHelpText').text('Select the section for the student.');
                     $('#collegeYearContainer').hide();
+                    $('#CollegeYearLevel').prop('required', false);
                     $('#CollegeYearLevel').val('0');
                 }
             });
@@ -257,17 +330,14 @@
             // Open modal for create
             $('#btnCreateStudent').click(function () {
                 $('#studentModalLabel').text('Create Student');
+                $('#studentForm')[0].reset();
                 $('#StudentId').val('');
-                $('#FullName').val('');
-                $('#Email').val('');
-                $('#Password').val('');
-                $('#LevelId').val('');
-                $('#SectionId').val('').prop('required', false);
-                $('#CollegeYearLevel').val('0');
+                $('#SectionId').prop('required', true);
                 $('#SectionId').closest('.col-md-6').show();
                 $('#collegeYearContainer').hide();
+                $('#CollegeYearLevel').prop('required', false);
 
-                // Reset sections to show all
+                // Reset sections to show all grouped
                 filterSections('');
 
                 studentModal.show();
@@ -288,21 +358,29 @@
                         $('#Password').val('');
                         $('#LevelId').val(res.data.levelId || '');
 
-                        // Filter sections first based on level
+                        // Get level text for filtering
                         var levelText = $('#LevelId option:selected').text();
+
+                        // Filter sections based on level
                         filterSections(levelText);
 
-                        // Then set the section value
+                        // Set the section value after filtering
                         $('#SectionId').val(res.data.sectionId || '');
                         $('#CollegeYearLevel').val(res.data.collegeYearLevel || '0');
 
                         // Show/hide section and college year based on level
                         if (levelText.toLowerCase().includes('college')) {
-                            $('#SectionId').val('').prop('required', false).closest('.col-md-6').hide();
+                            $('#SectionId').closest('.col-md-6').show();
+                            $('#SectionId').prop('required', true);
+                            $('#sectionHelpText').text('Select the program (e.g., BSHM, BSIT).');
                             $('#collegeYearContainer').show();
+                            $('#CollegeYearLevel').prop('required', true);
                         } else {
-                            $('#SectionId').closest('.col-md-6').show().find('select').prop('required', true);
+                            $('#SectionId').closest('.col-md-6').show();
+                            $('#SectionId').prop('required', true);
+                            $('#sectionHelpText').text('Select the section for the student.');
                             $('#collegeYearContainer').hide();
+                            $('#CollegeYearLevel').prop('required', false);
                         }
 
                         studentModal.show();
@@ -324,7 +402,30 @@
                 var studentId = $('#StudentId').val();
                 var isEdit = studentId && studentId != '';
 
+                // Validate required fields
+                if (!$('#FullName').val() || !$('#Email').val() || !$('#LevelId').val()) {
+                    showToast('Please fill in all required fields', 'bg-danger');
+                    return;
+                }
+
+                var levelText = $('#LevelId option:selected').text().toLowerCase();
                 var sectionId = $('#SectionId').val();
+
+                // Validate section (required for all levels now)
+                if (!sectionId) {
+                    showToast('Section/Program is required', 'bg-danger');
+                    return;
+                }
+
+                // Validate college year for college students
+                if (levelText.includes('college')) {
+                    var collegeYear = $('#CollegeYearLevel').val();
+                    if (!collegeYear || collegeYear == '0') {
+                        showToast('College Year Level is required for College students', 'bg-danger');
+                        return;
+                    }
+                }
+
                 var collegeYearLevel = $('#CollegeYearLevel').val();
 
                 var studentData = {
