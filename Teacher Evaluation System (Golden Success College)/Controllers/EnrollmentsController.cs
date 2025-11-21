@@ -21,11 +21,33 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
         }
 
         // GET: Enrollments
-        public async Task<IActionResult> Index()
+        // GET: Enrollments
+        public IActionResult Index()
         {
-            var teacher_Evaluation_System__Golden_Success_College_Context = _context.Enrollment.Include(e => e.Student).Include(e => e.Subject).Include(e =>e.Teacher);
-            return View(await teacher_Evaluation_System__Golden_Success_College_Context.ToListAsync());
+            // Students dropdown
+            ViewBag.Students = _context.Student
+                .Select(s => new { value = s.StudentId, text = s.FullName })
+                .ToList();
+
+            // Subjects with their teachers
+            var subjects = _context.Subject
+                .Include(s => s.Teacher)
+                .Select(s => new
+                {
+                    value = s.SubjectId,
+                    text = s.SubjectName,
+                    teacher = s.Teacher.FullName
+                })
+                .ToList();
+
+            ViewBag.Subjects = subjects;
+
+            // Dictionary of SubjectId -> TeacherName
+            ViewBag.SubjectTeacher = subjects.ToDictionary(s => s.value, s => s.teacher);
+
+            return View();
         }
+
 
         // GET: Enrollments/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -126,13 +148,19 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
                 return NotFound();
             }
 
-            var enrollment = await _context.Enrollment.FindAsync(id);
+            var enrollment = await _context.Enrollment
+              .Include(e => e.Student)
+              .Include(e => e.Subject)
+              .Include(e => e.Teacher)
+              .FirstOrDefaultAsync(e => e.EnrollmentId == id);
+
             if (enrollment == null)
-            {
                 return NotFound();
-            }
+
             ViewData["StudentId"] = new SelectList(_context.Student, "StudentId", "FullName", enrollment.StudentId);
             ViewData["SubjectId"] = new SelectList(_context.Subject, "SubjectId", "SubjectName", enrollment.SubjectId);
+            ViewData["TeacherId"] = new SelectList(_context.Teacher, "TeacherId", "FullName", enrollment.TeacherId);
+
             return View(enrollment);
         }
 
@@ -141,7 +169,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("EnrollmentId,StudentId,SubjectId")] Enrollment enrollment)
+        public async Task<IActionResult> Edit(int id, [Bind("EnrollmentId,StudentId,SubjectId,TeacherId")] Enrollment enrollment)
         {
             if (id != enrollment.EnrollmentId)
             {
@@ -170,6 +198,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             }
             ViewData["StudentId"] = new SelectList(_context.Student, "StudentId", "FullName", enrollment.StudentId);
             ViewData["SubjectId"] = new SelectList(_context.Subject, "SubjectId", "SubjectName", enrollment.SubjectId);
+            ViewData["TeacherId"] = new SelectList(_context.Teacher, "TeacherId", "FullName", enrollment.TeacherId);
+
             return View(enrollment);
         }
 
@@ -184,6 +214,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             var enrollment = await _context.Enrollment
                 .Include(e => e.Student)
                 .Include(e => e.Subject)
+                .Include(e => e.Teacher)
                 .FirstOrDefaultAsync(m => m.EnrollmentId == id);
             if (enrollment == null)
             {
