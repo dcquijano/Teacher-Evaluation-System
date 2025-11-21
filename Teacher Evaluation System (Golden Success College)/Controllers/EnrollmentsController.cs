@@ -21,33 +21,20 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
         }
 
         // GET: Enrollments
-        // GET: Enrollments
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            // Students dropdown
-            ViewBag.Students = _context.Student
-                .Select(s => new { value = s.StudentId, text = s.FullName })
-                .ToList();
+            var enrollments = await _context.Enrollment
+                .Include(e => e.Student)
+                .Include(e => e.Subject)
+                .Include(e => e.Teacher)
+                .ToListAsync();
 
-            // Subjects with their teachers
-            var subjects = _context.Subject
-                .Include(s => s.Teacher)
-                .Select(s => new
-                {
-                    value = s.SubjectId,
-                    text = s.SubjectName,
-                    teacher = s.Teacher.FullName
-                })
-                .ToList();
+            ViewBag.StudentId = new SelectList(await _context.Student.ToListAsync(), "StudentId", "FullName");
+            ViewBag.SubjectId = new SelectList(await _context.Subject.ToListAsync(), "SubjectId", "SubjectName");
+            ViewBag.TeacherId = new SelectList(await _context.Teacher.ToListAsync(), "TeacherId", "FullName");
 
-            ViewBag.Subjects = subjects;
-
-            // Dictionary of SubjectId -> TeacherName
-            ViewBag.SubjectTeacher = subjects.ToDictionary(s => s.value, s => s.teacher);
-
-            return View();
+            return View(enrollments);
         }
-
 
         // GET: Enrollments/Details/5
         public async Task<IActionResult> Details(int? id)

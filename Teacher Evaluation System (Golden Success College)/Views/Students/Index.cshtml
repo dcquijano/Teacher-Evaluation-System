@@ -1,72 +1,427 @@
 ﻿@model IEnumerable<Teacher_Evaluation_System__Golden_Success_College_.Models.Student>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Students";
     Layout = "_Layoutadmin";
 }
 
-<h1>Index</h1>
+<h1>Students</h1>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
+<div class="mb-3">
+    <button class="btn btn-primary" id="btnCreateStudent">
+        <i class="bi bi-plus-circle"></i> Create Student
+    </button>
+</div>
+
+<!-- Loading overlay -->
+<div id="loadingOverlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.7); z-index:1050; text-align:center;">
+    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="mt-2">Loading...</div>
+    </div>
+</div>
+
+<table class="table table-bordered table-striped table-sm align-middle w-100" id="studentsTable">
     <thead>
         <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.FullName)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Email)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Password)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Level)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Section)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CollegeYearLevel)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Role)
-            </th>
-            <th></th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Level</th>
+            <th>Section</th>
+            <th>College Year</th>
+            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(modelItem => item.FullName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Email)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Password)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Level.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Section.SectionName)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.CollegeYearLevel)
-            </td>
-            <td>
-                @Html.DisplayFor(modelItem => item.Role.Name)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.StudentId">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.StudentId">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.StudentId">Delete</a>
-            </td>
-        </tr>
-}
+        @foreach (var item in Model)
+        {
+            <tr data-id="@item.StudentId">
+                <td>@item.FullName</td>
+                <td>@item.Email</td>
+                <td>@item.Level?.LevelName</td>
+                <td>@(item.Section?.SectionName ?? "N/A")</td>
+                <td>@(item.CollegeYearLevel > 0 ? item.CollegeYearLevel.ToString() : "N/A")</td>
+                <td>
+                    <button class="btn btn-sm btn-warning btn-edit" data-id="@item.StudentId">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger btn-delete" data-id="@item.StudentId">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        }
     </tbody>
 </table>
+
+<!-- Modal for Create/Edit -->
+<div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="studentModalLabel">Create/Edit Student</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="studentForm">
+                    <input type="hidden" id="StudentId" name="StudentId" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="FullName" class="form-label">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="FullName" name="FullName" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="Email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="Email" name="Email" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="Password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="Password" name="Password" />
+                            <small class="form-text text-muted">Leave empty to keep existing password when editing.</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="LevelId" class="form-label">Level <span class="text-danger">*</span></label>
+                            <select class="form-select" id="LevelId" name="LevelId" required>
+                                <option value="">-- Select Level --</option>
+                                @if (ViewData["LevelId"] != null)
+                                {
+                                    @foreach (var level in ViewData["LevelId"] as SelectList)
+                                    {
+                                        <option value="@level.Value">@level.Text</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="SectionId" class="form-label">Section</label>
+                            <select class="form-select" id="SectionId" name="SectionId">
+                                <option value="">-- Select Section --</option>
+                                @if (ViewData["SectionId"] != null)
+                                {
+                                    var sections = ViewData["SectionId"] as IEnumerable<SelectListItem>;
+                                    foreach (var sec in sections)
+                                    {
+                                        <option value="@sec.Value">@sec.Text</option>
+                                    }
+                                }
+                            </select>
+                            <small class="form-text text-muted">For Junior High and Senior High only.</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3" id="collegeYearContainer">
+                            <label for="CollegeYearLevel" class="form-label">College Year Level</label>
+                            <select class="form-select" id="CollegeYearLevel" name="CollegeYearLevel">
+                                <option value="0">N/A</option>
+                                <option value="1">1st Year</option>
+                                <option value="2">2nd Year</option>
+                                <option value="3">3rd Year</option>
+                                <option value="4">4th Year</option>
+                            </select>
+                            <small class="form-text text-muted">Only applicable for College level students.</small>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="saveStudentBtn">
+                    <i class="bi bi-check-circle"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+    <div id="toast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMessage"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            var toastEl = $('#toast');
+            var toastMessage = $('#toastMessage');
+            var loadingOverlay = $('#loadingOverlay');
+
+            // Store all sections for filtering
+            var allSections = [];
+            $('#SectionId option').each(function() {
+                if ($(this).val()) {
+                    allSections.push({
+                        value: $(this).val(),
+                        text: $(this).text()
+                    });
+                }
+            });
+
+            function showToast(message, bgClass = 'bg-success') {
+                toastEl.removeClass('bg-success bg-danger bg-warning').addClass(bgClass);
+                toastMessage.text(message);
+                var toast = new bootstrap.Toast(toastEl[0]);
+                toast.show();
+            }
+
+            function showLoading(show = true) {
+                show ? loadingOverlay.show() : loadingOverlay.hide();
+            }
+
+            function filterSections(levelName) {
+                var $sectionSelect = $('#SectionId');
+                var currentValue = $sectionSelect.val();
+
+                // Clear existing options except the first one
+                $sectionSelect.find('option:not(:first)').remove();
+
+                if (!levelName) return;
+
+                var levelLower = levelName.toLowerCase();
+                var filteredSections = [];
+
+                if (levelLower.includes('junior')) {
+                    // Show only Junior High sections
+                    filteredSections = allSections.filter(s => s.text.toLowerCase().includes('junior'));
+                } else if (levelLower.includes('senior')) {
+                    // Show only Senior High sections
+                    filteredSections = allSections.filter(s => s.text.toLowerCase().includes('senior'));
+                } else if (levelLower.includes('college')) {
+                    // No sections for college
+                    filteredSections = [];
+                } else {
+                    // Show all sections if level type is unclear
+                    filteredSections = allSections;
+                }
+
+                // Add filtered sections back
+                filteredSections.forEach(function(sec) {
+                    $sectionSelect.append(`<option value="${sec.value}">${sec.text}</option>`);
+                });
+
+                // Restore previous value if it still exists
+                if (currentValue && $sectionSelect.find(`option[value="${currentValue}"]`).length > 0) {
+                    $sectionSelect.val(currentValue);
+                }
+            }
+
+            var studentModalEl = document.getElementById('studentModal');
+            var studentModal = new bootstrap.Modal(studentModalEl);
+
+            var table = $('#studentsTable').DataTable({
+                "columnDefs": [{ "orderable": false, "targets": 5 }]
+            });
+
+            // Toggle section and college year level visibility based on selected level
+            $('#LevelId').change(function () {
+                var selectedText = $(this).find('option:selected').text().toLowerCase();
+
+                // Filter sections based on level
+                filterSections($(this).find('option:selected').text());
+
+                if (selectedText.includes('college')) {
+                    // College: hide section, show college year
+                    $('#SectionId').val('').prop('required', false).closest('.col-md-6').hide();
+                    $('#collegeYearContainer').show();
+                    if ($('#CollegeYearLevel').val() == '0' || !$('#CollegeYearLevel').val()) {
+                        $('#CollegeYearLevel').val('1');
+                    }
+                } else {
+                    // JHS/SHS: show section, hide college year
+                    $('#SectionId').closest('.col-md-6').show().find('select').prop('required', true);
+                    $('#collegeYearContainer').hide();
+                    $('#CollegeYearLevel').val('0');
+                }
+            });
+
+            // Open modal for create
+            $('#btnCreateStudent').click(function () {
+                $('#studentModalLabel').text('Create Student');
+                $('#StudentId').val('');
+                $('#FullName').val('');
+                $('#Email').val('');
+                $('#Password').val('');
+                $('#LevelId').val('');
+                $('#SectionId').val('').prop('required', false);
+                $('#CollegeYearLevel').val('0');
+                $('#SectionId').closest('.col-md-6').show();
+                $('#collegeYearContainer').hide();
+
+                // Reset sections to show all
+                filterSections('');
+
+                studentModal.show();
+            });
+
+            // Open modal for edit
+            $(document).on('click', '.btn-edit', function () {
+                var id = $(this).data('id');
+                showLoading(true);
+
+                $.get(`/api/StudentsApi/${id}`, function (res) {
+                    showLoading(false);
+                    if (res.success) {
+                        $('#studentModalLabel').text('Edit Student');
+                        $('#StudentId').val(res.data.studentId);
+                        $('#FullName').val(res.data.fullName);
+                        $('#Email').val(res.data.email);
+                        $('#Password').val('');
+                        $('#LevelId').val(res.data.levelId || '');
+
+                        // Filter sections first based on level
+                        var levelText = $('#LevelId option:selected').text();
+                        filterSections(levelText);
+
+                        // Then set the section value
+                        $('#SectionId').val(res.data.sectionId || '');
+                        $('#CollegeYearLevel').val(res.data.collegeYearLevel || '0');
+
+                        // Show/hide section and college year based on level
+                        if (levelText.toLowerCase().includes('college')) {
+                            $('#SectionId').val('').prop('required', false).closest('.col-md-6').hide();
+                            $('#collegeYearContainer').show();
+                        } else {
+                            $('#SectionId').closest('.col-md-6').show().find('select').prop('required', true);
+                            $('#collegeYearContainer').hide();
+                        }
+
+                        studentModal.show();
+                    } else {
+                        showToast(res.message, 'bg-danger');
+                    }
+                }).fail(function (xhr) {
+                    showLoading(false);
+                    var errorMessage = 'Failed to load student';
+                    if (xhr.responseJSON && xhr.responseJSON.message) {
+                        errorMessage = xhr.responseJSON.message;
+                    }
+                    showToast(errorMessage, 'bg-danger');
+                });
+            });
+
+            // Save student (create or edit)
+            $('#saveStudentBtn').click(function () {
+                var studentId = $('#StudentId').val();
+                var isEdit = studentId && studentId != '';
+
+                var sectionId = $('#SectionId').val();
+                var collegeYearLevel = $('#CollegeYearLevel').val();
+
+                var studentData = {
+                    studentId: isEdit ? parseInt(studentId) : 0,
+                    fullName: $('#FullName').val(),
+                    email: $('#Email').val(),
+                    password: $('#Password').val(),
+                    levelId: parseInt($('#LevelId').val()),
+                    sectionId: sectionId ? parseInt(sectionId) : null,
+                    collegeYearLevel: collegeYearLevel ? parseInt(collegeYearLevel) : 0
+                };
+
+                var url = isEdit ? `/api/StudentsApi/${studentId}` : '/api/StudentsApi';
+                var type = isEdit ? 'PUT' : 'POST';
+
+                showLoading(true);
+                $.ajax({
+                    url: url,
+                    type: type,
+                    contentType: 'application/json',
+                    data: JSON.stringify(studentData),
+                    success: function (res) {
+                        showLoading(false);
+                        if (res.success) {
+                            var sectionDisplay = res.data.sectionName || 'N/A';
+                            var collegeYear = res.data.collegeYearLevel > 0 ? res.data.collegeYearLevel : 'N/A';
+
+                            if (isEdit) {
+                                var row = table.row($(`tr[data-id="${studentId}"]`));
+                                row.data([
+                                    res.data.fullName,
+                                    res.data.email,
+                                    res.data.levelName || '',
+                                    sectionDisplay,
+                                    collegeYear,
+                                    `<button class="btn btn-sm btn-warning btn-edit" data-id="${res.data.studentId}"><i class="bi bi-pencil-square"></i></button>
+                                     <button class="btn btn-sm btn-danger btn-delete" data-id="${res.data.studentId}"><i class="bi bi-trash"></i></button>`
+                                ]).draw(false);
+                                $(`tr[data-id="${studentId}"]`).attr('data-id', res.data.studentId);
+                            } else {
+                                var newRow = table.row.add([
+                                    res.data.fullName,
+                                    res.data.email,
+                                    res.data.levelName || '',
+                                    sectionDisplay,
+                                    collegeYear,
+                                    `<button class="btn btn-sm btn-warning btn-edit" data-id="${res.data.studentId}"><i class="bi bi-pencil-square"></i></button>
+                                     <button class="btn btn-sm btn-danger btn-delete" data-id="${res.data.studentId}"><i class="bi bi-trash"></i></button>`
+                                ]).draw(false).node();
+                                $(newRow).attr('data-id', res.data.studentId);
+                            }
+                            showToast(res.message);
+                            studentModal.hide();
+                        } else {
+                            showToast(res.message, 'bg-danger');
+                        }
+                    },
+                    error: function (xhr) {
+                        showLoading(false);
+                        var errorMessage = 'Failed to save!';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        showToast(errorMessage, 'bg-danger');
+                    }
+                });
+            });
+
+            // Delete student
+            $(document).on('click', '.btn-delete', function () {
+                if (!confirm('Are you sure you want to delete this student?')) return;
+                var id = $(this).data('id');
+
+                showLoading(true);
+                $.ajax({
+                    url: `/api/StudentsApi/${id}`,
+                    type: 'DELETE',
+                    success: function (res) {
+                        showLoading(false);
+                        if (res.success) {
+                            table.row($(`tr[data-id="${id}"]`)).remove().draw();
+                            showToast(res.message);
+                        } else {
+                            showToast(res.message, 'bg-danger');
+                        }
+                    },
+                    error: function (xhr) {
+                        showLoading(false);
+                        var errorMessage = 'Failed to delete!';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+                        showToast(errorMessage, 'bg-danger');
+                    }
+                });
+            });
+
+        });
+    </script>
+}

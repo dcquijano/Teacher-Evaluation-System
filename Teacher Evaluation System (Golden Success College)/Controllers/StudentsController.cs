@@ -23,9 +23,32 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
         // GET: Students
         public async Task<IActionResult> Index()
         {
-            var teacher_Evaluation_System__Golden_Success_College_Context = _context.Student.Include(s => s.Level).Include(s => s.Role).Include(s => s.Section);
-            return View(await teacher_Evaluation_System__Golden_Success_College_Context.ToListAsync());
+            var students = await _context.Student
+                .Include(s => s.Level)
+                .Include(s => s.Role)
+                .Include(s => s.Section)
+                .ToListAsync();
+
+            // Load levels for dropdown
+            ViewData["LevelId"] = new SelectList(await _context.Level.ToListAsync(), "LevelId", "LevelName");
+
+            // Load sections with their Level for grouping
+            var sections = await _context.Section.Include(s => s.Level).ToListAsync();
+
+            // Convert to SelectListItem with Group (optgroup)
+            var sectionSelectList = sections.Select(s => new SelectListItem
+            {
+                Value = s.SectionId.ToString(),
+                Text = s.SectionName,
+                Group = new SelectListGroup { Name = s.Level.LevelName } // College, Senior High, Junior High
+            }).ToList();
+
+            ViewData["SectionId"] = sectionSelectList;
+
+            return View(students);
         }
+
+
 
         // GET: Students/Details/5
         public async Task<IActionResult> Details(int? id)

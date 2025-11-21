@@ -9,7 +9,7 @@
 
 <div class="mb-3">
     <button class="btn btn-primary" id="btnCreateEnrollment">
-        <i class="bi bi-plus-circle"></i> Add Enrollment
+        <i class="bi bi-plus-circle"></i> Create Enrollment
     </button>
 </div>
 
@@ -23,61 +23,93 @@
     </div>
 </div>
 
-<!-- DataTable -->
 <table class="table table-bordered table-striped table-sm align-middle w-100" id="enrollmentsTable">
     <thead>
         <tr>
-            <th>Student</th>
-            <th>Subject</th>
-            <th>Teacher</th>
+            <th>Student Name</th>
+            <th>Subject Name</th>
+            <th>Teacher Name</th>
             <th>Actions</th>
         </tr>
     </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr data-id="@item.EnrollmentId">
+                <td>@item.Student?.FullName</td>
+                <td>@item.Subject?.SubjectName</td>
+                <td>@item.Teacher?.FullName</td>
+                <td>
+                    <button class="btn btn-sm btn-warning btn-edit" data-id="@item.EnrollmentId">
+                        <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger btn-delete" data-id="@item.EnrollmentId">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            </tr>
+        }
+    </tbody>
 </table>
 
 <!-- Modal for Create/Edit -->
-<div class="modal fade" id="enrollmentModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
+<div class="modal fade" id="enrollmentModal" tabindex="-1" aria-labelledby="enrollmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="enrollmentModalLabel">Add/Edit Enrollment</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="enrollmentModalLabel">Create/Edit Enrollment</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="enrollmentForm">
-                    <input type="hidden" id="EnrollmentId" />
-
+                    <input type="hidden" id="EnrollmentId" name="EnrollmentId" />
                     <div class="mb-3">
-                        <label>Student</label>
-                        <select id="StudentId" class="form-select" required>
+                        <label for="StudentId" class="form-label">Student</label>
+                        <select class="form-select" id="StudentId" name="StudentId" required>
                             <option value="">-- Select Student --</option>
-                            @foreach (var s in ViewBag.Students)
+                            @foreach (var student in ViewBag.StudentId as SelectList)
                             {
-                                <option value="@s.value">@s.text</option>
+                                <option value="@student.Value">@student.Text</option>
                             }
                         </select>
                     </div>
-
+                    <div class="mb-3" id="subjectSelectContainer">
+                        <label for="SubjectId" class="form-label">Subject</label>
+                        <select class="form-select" id="SubjectId" name="SubjectId" required>
+                            <option value="">-- Select Subject --</option>
+                            @foreach (var subject in ViewBag.SubjectId as SelectList)
+                            {
+                                <option value="@subject.Value">@subject.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="mb-3" id="subjectMultiSelectContainer" style="display:none;">
+                        <label for="SubjectIds" class="form-label">Subjects</label>
+                        <select class="form-select" id="SubjectIds" name="SubjectIds" multiple size="5">
+                            @foreach (var subject in ViewBag.SubjectId as SelectList)
+                            {
+                                <option value="@subject.Value">@subject.Text</option>
+                            }
+                        </select>
+                        <small class="form-text text-muted">Hold Ctrl (Cmd on Mac) to select multiple subjects.</small>
+                    </div>
                     <div class="mb-3">
-                        <label>Subjects</label>
-                        <div id="subjects-container">
-                            <div class="subject-row mb-2">
-                                <div class="input-group">
-                                    <select name="SubjectIds" class="form-control subject-select" required>
-                                        <option value="">-- Select Subject --</option>
-                                    </select>
-                                    <input type="text" class="form-control teacher-name" readonly placeholder="Teacher" />
-                                    <button type="button" class="btn btn-danger btn-remove-subject" disabled>Remove</button>
-                                </div>
-                            </div>
-                        </div>
-                        <button type="button" id="btn-add-subject" class="btn btn-success btn-sm mt-2">Add Another Subject</button>
+                        <label for="TeacherId" class="form-label">Teacher</label>
+                        <select class="form-select" id="TeacherId" name="TeacherId" required>
+                            <option value="">-- Select Teacher --</option>
+                            @foreach (var teacher in ViewBag.TeacherId as SelectList)
+                            {
+                                <option value="@teacher.Value">@teacher.Text</option>
+                            }
+                        </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" id="saveEnrollmentBtn">Save</button>
+                <button type="button" class="btn btn-primary" id="saveEnrollmentBtn">
+                    <i class="bi bi-check-circle"></i> Save
+                </button>
             </div>
         </div>
     </div>
@@ -88,7 +120,7 @@
     <div id="toast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body" id="toastMessage"></div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
         </div>
     </div>
 </div>
@@ -102,7 +134,6 @@
 
     <script>
         $(document).ready(function () {
-
             var toastEl = $('#toast');
             var toastMessage = $('#toastMessage');
             var loadingOverlay = $('#loadingOverlay');
@@ -110,7 +141,8 @@
             function showToast(message, bgClass = 'bg-success') {
                 toastEl.removeClass('bg-success bg-danger bg-warning').addClass(bgClass);
                 toastMessage.text(message);
-                new bootstrap.Toast(toastEl[0]).show();
+                var toast = new bootstrap.Toast(toastEl[0]);
+                toast.show();
             }
 
             function showLoading(show = true) {
@@ -120,136 +152,154 @@
             var enrollmentModalEl = document.getElementById('enrollmentModal');
             var enrollmentModal = new bootstrap.Modal(enrollmentModalEl);
 
-            // Subjects and Teacher mapping
-            var subjects = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.Subjects ?? new List<object>()));
-            var teacherDict = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.SubjectTeacher ?? new Dictionary<int, string>()));
-
-            function resetSubjects() {
-                var options = '';
-                subjects.forEach(function (subj) {
-                    var teacherName = teacherDict[subj.value] || '';
-                    options += `<option value="${subj.value}" data-teacher="${teacherName}">${subj.text}</option>`;
-                });
-
-                $('#subjects-container').html(`
-                    <div class="subject-row mb-2">
-                        <div class="input-group">
-                            <select name="SubjectIds" class="form-control subject-select" required>
-                                <option value="">-- Select Subject --</option>
-                                ${options}
-                            </select>
-                            <input type="text" class="form-control teacher-name" readonly placeholder="Teacher" />
-                            <button type="button" class="btn btn-danger btn-remove-subject" disabled>Remove</button>
-                        </div>
-                    </div>
-                `);
-            }
-
-            resetSubjects();
-
-            function updateRemoveButtons() {
-                $('.btn-remove-subject').prop('disabled', $('.subject-row').length === 1);
-            }
-
-            updateRemoveButtons();
-
-            // DataTable
             var table = $('#enrollmentsTable').DataTable({
-                ajax: {
-                    url: '@Url.Content("~/api/EnrollmentsApi")',
-                    dataSrc: function (res) { return res.success ? res.data : []; }
-                },
-                columns: [
-                    { data: 'studentName' },
-                    { data: 'subjectName' },
-                    { data: 'teacherName' },
-                    {
-                        data: 'enrollmentId',
-                        render: function (data) {
-                            return `
-                                <button class="btn btn-sm btn-warning btn-edit" data-id="${data}">
-                                    <i class="bi bi-pencil-square"></i>
-                                </button>
-                                <button class="btn btn-sm btn-danger btn-delete" data-id="${data}">
-                                    <i class="bi bi-trash"></i>
-                                </button>`;
-                        }
-                    }
-                ]
+                "columnDefs": [{ "orderable": false, "targets": 3 }]
             });
 
-            // Add subject row
-            $('#btn-add-subject').click(function () {
-                var newRow = $('.subject-row').first().clone();
-                newRow.find('select').val('');
-                newRow.find('.teacher-name').val('');
-                newRow.find('.btn-remove-subject').prop('disabled', false);
-                $('#subjects-container').append(newRow);
-                updateRemoveButtons();
-            });
-
-            // Remove subject row
-            $(document).on('click', '.btn-remove-subject', function () {
-                $(this).closest('.subject-row').remove();
-                updateRemoveButtons();
-            });
-
-            // Update teacher on subject change
-            $(document).on('change', '.subject-select', function () {
-                var teacherName = $(this).find(':selected').data('teacher') || '';
-                $(this).closest('.input-group').find('.teacher-name').val(teacherName);
-            });
-
-            // Open modal
+            // Open modal for create
             $('#btnCreateEnrollment').click(function () {
-                $('#enrollmentModalLabel').text('Add Enrollment');
+                $('#enrollmentModalLabel').text('Create Enrollment');
                 $('#EnrollmentId').val('');
                 $('#StudentId').val('');
-                resetSubjects();
+                $('#SubjectId').val('');
+                $('#SubjectIds').val([]);
+                $('#TeacherId').val('');
+
+                // Show multi-select for create, single for edit
+                $('#subjectSelectContainer').hide();
+                $('#subjectMultiSelectContainer').show();
+                $('#SubjectId').removeAttr('required');
+                $('#SubjectIds').attr('required', 'required');
+
                 enrollmentModal.show();
             });
 
-            // Save Enrollment
-            $('#saveEnrollmentBtn').click(function () {
-                var studentId = parseInt($('#StudentId').val());
-                var subjectIds = [];
-                $('#subjects-container .subject-select').each(function () {
-                    if ($(this).val()) subjectIds.push(parseInt($(this).val()));
-                });
-
-                if (!studentId || subjectIds.length === 0) {
-                    showToast('Please select a student and at least one subject', 'bg-warning');
-                    return;
-                }
-
-                var data = { studentId: studentId, subjectIds: subjectIds };
+            // Open modal for edit
+            $(document).on('click', '.btn-edit', function () {
+                var id = $(this).data('id');
                 showLoading(true);
-                $.ajax({
-                    url: '/api/EnrollmentsApi',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(data),
-                    success: function (res) {
-                        showLoading(false);
-                        if (res.success) {
-                            table.ajax.reload();
-                            showToast(res.message);
-                            enrollmentModal.hide();
-                        } else showToast(res.message, 'bg-danger');
-                    },
-                    error: function () {
-                        showLoading(false);
-                        showToast('Failed to save enrollment', 'bg-danger');
+
+                $.get(`/api/EnrollmentsApi/${id}`, function (res) {
+                    showLoading(false);
+                    if (res.success) {
+                        $('#enrollmentModalLabel').text('Edit Enrollment');
+                        $('#EnrollmentId').val(res.data.enrollmentId);
+                        $('#StudentId').val(res.data.studentId || '');
+                        $('#SubjectId').val(res.data.subjectId || '');
+                        $('#TeacherId').val(res.data.teacherId || '');
+
+                        // Show single select for edit
+                        $('#subjectSelectContainer').show();
+                        $('#subjectMultiSelectContainer').hide();
+                        $('#SubjectId').attr('required', 'required');
+                        $('#SubjectIds').removeAttr('required');
+
+                        enrollmentModal.show();
+                    } else {
+                        showToast(res.message, 'bg-danger');
                     }
+                }).fail(function () {
+                    showLoading(false);
+                    showToast('Failed to load enrollment', 'bg-danger');
                 });
             });
 
+            // Save enrollment (create or edit)
+            $('#saveEnrollmentBtn').click(function () {
+                var enrollmentId = $('#EnrollmentId').val();
+                var isEdit = enrollmentId && enrollmentId != '';
 
+                if (isEdit) {
+                    // Edit mode - single enrollment
+                    var enrollmentData = {
+                        enrollmentId: parseInt(enrollmentId),
+                        studentId: parseInt($('#StudentId').val()),
+                        subjectId: parseInt($('#SubjectId').val()),
+                        teacherId: parseInt($('#TeacherId').val())
+                    };
 
-            // Delete Enrollment
+                    showLoading(true);
+                    $.ajax({
+                        url: `/api/EnrollmentsApi/${enrollmentId}`,
+                        type: 'PUT',
+                        contentType: 'application/json',
+                        data: JSON.stringify(enrollmentData),
+                        success: function (res) {
+                            showLoading(false);
+                            if (res.success) {
+                                var row = table.row($(`tr[data-id="${enrollmentId}"]`));
+                                row.data([
+                                    res.data.studentName || '',
+                                    res.data.subjectName || '',
+                                    res.data.teacherName || '',
+                                    `<button class="btn btn-sm btn-warning btn-edit" data-id="${res.data.enrollmentId}"><i class="bi bi-pencil-square"></i></button>
+                                     <button class="btn btn-sm btn-danger btn-delete" data-id="${res.data.enrollmentId}"><i class="bi bi-trash"></i></button>`
+                                ]).draw(false);
+                                showToast(res.message);
+                                enrollmentModal.hide();
+                            } else {
+                                showToast(res.message, 'bg-danger');
+                            }
+                        },
+                        error: function () {
+                            showLoading(false);
+                            showToast('Failed to save!', 'bg-danger');
+                        }
+                    });
+                } else {
+                    // Create mode - multiple enrollments
+                    var subjectIds = $('#SubjectIds').val();
+                    if (!subjectIds || subjectIds.length === 0) {
+                        showToast('Please select at least one subject', 'bg-warning');
+                        return;
+                    }
+
+                    var enrollmentData = {
+                        studentId: parseInt($('#StudentId').val()),
+                        subjectIds: subjectIds.map(id => parseInt(id))
+                    };
+
+                    showLoading(true);
+                    $.ajax({
+                        url: '/api/EnrollmentsApi',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(enrollmentData),
+                        success: function (res) {
+                            showLoading(false);
+                            if (res.success) {
+                                // Add all new enrollments to table
+                                if (res.data && res.data.length > 0) {
+                                    res.data.forEach(function(enrollment) {
+                                        var newRow = table.row.add([
+                                            enrollment.studentName || '',
+                                            enrollment.subjectName || '',
+                                            enrollment.teacherName || '',
+                                            `<button class="btn btn-sm btn-warning btn-edit" data-id="${enrollment.enrollmentId}"><i class="bi bi-pencil-square"></i></button>
+                                             <button class="btn btn-sm btn-danger btn-delete" data-id="${enrollment.enrollmentId}"><i class="bi bi-trash"></i></button>`
+                                        ]).draw(false).node();
+                                        $(newRow).attr('data-id', enrollment.enrollmentId);
+                                    });
+                                }
+                                showToast(res.message);
+                                enrollmentModal.hide();
+                            } else {
+                                showToast(res.message, 'bg-danger');
+                            }
+                        },
+                        error: function () {
+                            showLoading(false);
+                            showToast('Failed to save!', 'bg-danger');
+                        }
+                    });
+                }
+            });
+
+            // Delete enrollment
             $(document).on('click', '.btn-delete', function () {
                 if (!confirm('Are you sure you want to delete this enrollment?')) return;
                 var id = $(this).data('id');
+
                 showLoading(true);
                 $.ajax({
                     url: `/api/EnrollmentsApi/${id}`,
@@ -257,9 +307,11 @@
                     success: function (res) {
                         showLoading(false);
                         if (res.success) {
-                            table.ajax.reload();
+                            table.row($(`tr[data-id="${id}"]`)).remove().draw();
                             showToast(res.message);
-                        } else showToast(res.message, 'bg-danger');
+                        } else {
+                            showToast(res.message, 'bg-danger');
+                        }
                     },
                     error: function () {
                         showLoading(false);
@@ -267,7 +319,6 @@
                     }
                 });
             });
-
         });
     </script>
 }
