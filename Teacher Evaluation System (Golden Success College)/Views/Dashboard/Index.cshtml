@@ -36,8 +36,10 @@
 }
 else if (role == "Student")
 {
+
     <!-- STUDENT DASHBOARD -->
-    <h2 class="mb-4">Teacher Evaluation</h2>
+    <br />
+    <h2 class="mb-4 text-center">Teacher Evaluation</h2>
 
     <div class="row">
 
@@ -55,9 +57,12 @@ else if (role == "Student")
             @foreach (var teacher in Model)
             {
                 <div class="col-md-4 mb-4">
-                    <div class="card shadow p-3">
+                    <div class="card shadow p-3 text-center">
 
-                        <img src="@teacher.PicturePath" class="img-fluid rounded mb-2" />
+                        <!-- Fixed size image -->
+                        <img src="@teacher.PicturePath"
+                             class="teacher-img rounded mb-2"
+                             alt="@teacher.FullName" />
 
                         <h5>@teacher.FullName</h5>
                         <p class="text-muted">@teacher.Department</p>
@@ -77,4 +82,22 @@ else if (role == "Student")
         }
 
     </div>
+
+    <style>
+        /* All teacher images have the same size and scale nicely */
+        .teacher-img {
+            width: 150px; /* Fixed width */
+            height: 150px; /* Fixed height */
+            object-fit: cover; /* Crop/scale to fill the box */
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .card h5 {
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+    </style>
+
 }

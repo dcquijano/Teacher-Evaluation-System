@@ -73,8 +73,6 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
             return Ok(new { success = true, data });
         }
 
-
-
         // GET: api/QuestionsApi/ByCriteria/5
         [HttpGet("ByCriteria/{criteriaId}")]
         public async Task<IActionResult> GetQuestionsByCriteria(int criteriaId)
@@ -135,10 +133,17 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
                             Description = desc.Trim()
                         };
                         _context.Question.Add(question);
-                        await _context.SaveChangesAsync();
-                        questionIds.Add(question.QuestionId);
                     }
                 }
+
+                await _context.SaveChangesAsync();
+
+                // Get the newly created questions
+                var newQuestions = await _context.Question
+                    .Where(q => q.CriteriaId == request.CriteriaId)
+                    .OrderByDescending(q => q.QuestionId)
+                    .Take(request.Descriptions.Count(d => !string.IsNullOrWhiteSpace(d)))
+                    .ToListAsync();
 
                 var criteria = await _context.Criteria.FindAsync(request.CriteriaId);
 
@@ -150,8 +155,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
                     {
                         criteriaId = request.CriteriaId,
                         criteriaName = criteria?.Name,
-                        descriptions = request.Descriptions.Where(d => !string.IsNullOrWhiteSpace(d)).ToList(),
-                        questionIds
+                        descriptions = newQuestions.Select(q => q.Description).ToList(),
+                        questionIds = newQuestions.Select(q => q.QuestionId).ToList()
                     }
                 });
             }
@@ -168,50 +173,57 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
             try
             {
                 // Get the original question to find its criteria
-                var originalQuestion = await _context.Question.FindAsync(id);
+                var originalQuestion = await _context.Question
+                    .Include(q => q.Criteria)
+                    .FirstOrDefaultAsync(q => q.QuestionId == id);
+
                 if (originalQuestion == null)
                     return NotFound(new { success = false, message = "Question not found" });
 
                 if (request.CriteriaId == 0)
                     return BadRequest(new { success = false, message = "Criteria is required." });
 
-                if (request.Descriptions == null || !request.Descriptions.Any())
+                // Filter out empty descriptions
+                var validDescriptions = request.Descriptions?
+                    .Where(d => !string.IsNullOrWhiteSpace(d))
+                    .Select(d => d.Trim())
+                    .ToList() ?? new List<string>();
+
+                if (!validDescriptions.Any())
                     return BadRequest(new { success = false, message = "At least one description is required." });
 
                 // Verify criteria exists
-                var criteriaExists = await _context.Criteria.AnyAsync(c => c.CriteriaId == request.CriteriaId);
-                if (!criteriaExists)
+                var criteria = await _context.Criteria.FindAsync(request.CriteriaId);
+                if (criteria == null)
                     return BadRequest(new { success = false, message = "Invalid Criteria selected." });
 
-                // Get all existing questions for this criteria
+                // Get all existing questions for the ORIGINAL criteria
                 var existingQuestions = await _context.Question
                     .Where(q => q.CriteriaId == originalQuestion.CriteriaId)
                     .ToListAsync();
 
                 // Remove all existing questions
                 _context.Question.RemoveRange(existingQuestions);
-
-                var questionIds = new List<int>();
+                await _context.SaveChangesAsync();
 
                 // Add all new/updated descriptions
-                foreach (var desc in request.Descriptions)
+                foreach (var desc in validDescriptions)
                 {
-                    if (!string.IsNullOrWhiteSpace(desc))
+                    var question = new Question
                     {
-                        var question = new Question
-                        {
-                            CriteriaId = request.CriteriaId,
-                            Description = desc.Trim()
-                        };
-                        _context.Question.Add(question);
-                        await _context.SaveChangesAsync();
-                        questionIds.Add(question.QuestionId);
-                    }
+                        CriteriaId = request.CriteriaId,
+                        Description = desc
+                    };
+                    _context.Question.Add(question);
                 }
 
                 await _context.SaveChangesAsync();
 
-                var criteria = await _context.Criteria.FindAsync(request.CriteriaId);
+                // Get the newly created questions
+                var newQuestions = await _context.Question
+                    .Where(q => q.CriteriaId == request.CriteriaId)
+                    .OrderBy(q => q.QuestionId)
+                    .ToListAsync();
 
                 return Ok(new
                 {
@@ -220,9 +232,9 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
                     data = new
                     {
                         criteriaId = request.CriteriaId,
-                        criteriaName = criteria?.Name,
-                        descriptions = request.Descriptions.Where(d => !string.IsNullOrWhiteSpace(d)).ToList(),
-                        questionIds
+                        criteriaName = criteria.Name,
+                        descriptions = newQuestions.Select(q => q.Description).ToList(),
+                        questionIds = newQuestions.Select(q => q.QuestionId).ToList()
                     }
                 });
             }

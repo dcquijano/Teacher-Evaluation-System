@@ -102,7 +102,7 @@
 </div>
 
 <!-- Toast Notification -->
-<div class="position-fixed top-0 end-0 p-3" style="z-index: 11">
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1100">
     <div id="toast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body" id="toastMessage"></div>
@@ -205,7 +205,7 @@
                 });
             });
 
-            // Save questions
+            // Save questions - FIXED VERSION
             $('#saveQuestionBtn').click(function () {
                 var questionId = $('#QuestionId').val();
                 var isEdit = questionId && questionId != '';
@@ -216,10 +216,13 @@
                     return;
                 }
 
+                // FIXED: Only collect NON-EMPTY descriptions
                 var descriptions = [];
                 $('.description-input').each(function() {
                     var val = $(this).val().trim();
-                    if (val) descriptions.push(val);
+                    if (val !== '') {  // Only add non-empty values
+                        descriptions.push(val);
+                    }
                 });
 
                 if (descriptions.length === 0) {
@@ -227,7 +230,11 @@
                     return;
                 }
 
-                var requestData = { criteriaId: criteriaId, descriptions: descriptions };
+                var requestData = {
+                    criteriaId: criteriaId,
+                    descriptions: descriptions
+                };
+
                 var url = isEdit ? `/api/QuestionsApi/${questionId}` : '/api/QuestionsApi';
                 var type = isEdit ? 'PUT' : 'POST';
 
@@ -241,31 +248,40 @@
                         showLoading(false);
                         if (res.success) {
                             var descriptionsHtml = res.data.descriptions.map(d => `<div>${d}</div>`).join('');
+                            var firstQuestionId = res.data.questionIds[0];
+
                             if (isEdit) {
                                 var row = table.row($(`tr[data-id="${questionId}"]`));
                                 row.data([
                                     res.data.criteriaName,
                                     descriptionsHtml,
-                                    `<button class="btn btn-sm btn-warning btn-edit" data-id="${res.data.questionIds[0]}"><i class="bi bi-pencil-square"></i></button>
-                                     <button class="btn btn-sm btn-danger btn-delete" data-id="${res.data.questionIds[0]}"><i class="bi bi-trash"></i></button>`
+                                    `<button class="btn btn-sm btn-warning btn-edit" data-id="${firstQuestionId}"><i class="bi bi-pencil-square"></i></button>
+                                     <button class="btn btn-sm btn-danger btn-delete" data-id="${firstQuestionId}"><i class="bi bi-trash"></i></button>`
                                 ]).draw(false);
+
+                                // Update the data-id attribute with new ID
+                                $(`tr[data-id="${questionId}"]`).attr('data-id', firstQuestionId);
                             } else {
                                 var newRow = table.row.add([
                                     res.data.criteriaName,
                                     descriptionsHtml,
-                                    `<button class="btn btn-sm btn-warning btn-edit" data-id="${res.data.questionIds[0]}"><i class="bi bi-pencil-square"></i></button>
-                                     <button class="btn btn-sm btn-danger btn-delete" data-id="${res.data.questionIds[0]}"><i class="bi bi-trash"></i></button>`
+                                    `<button class="btn btn-sm btn-warning btn-edit" data-id="${firstQuestionId}"><i class="bi bi-pencil-square"></i></button>
+                                     <button class="btn btn-sm btn-danger btn-delete" data-id="${firstQuestionId}"><i class="bi bi-trash"></i></button>`
                                 ]).draw(false).node();
-                                $(newRow).attr('data-id', res.data.questionIds[0]);
+                                $(newRow).attr('data-id', firstQuestionId);
                             }
                             showToast(res.message);
                             questionModal.hide();
-                        } else showToast(res.message, 'bg-danger');
+                        } else {
+                            showToast(res.message, 'bg-danger');
+                        }
                     },
                     error: function(xhr) {
                         showLoading(false);
                         var errorMsg = 'Failed to save questions!';
-                        if (xhr.responseJSON && xhr.responseJSON.message) errorMsg = xhr.responseJSON.message;
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        }
                         showToast(errorMsg, 'bg-danger');
                     }
                 });
@@ -285,12 +301,16 @@
                         if (res.success) {
                             table.row($(`tr[data-id="${id}"]`)).remove().draw();
                             showToast(res.message);
-                        } else showToast(res.message, 'bg-danger');
+                        } else {
+                            showToast(res.message, 'bg-danger');
+                        }
                     },
                     error: function(xhr) {
                         showLoading(false);
                         var errorMsg = 'Failed to delete questions!';
-                        if (xhr.responseJSON && xhr.responseJSON.message) errorMsg = xhr.responseJSON.message;
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMsg = xhr.responseJSON.message;
+                        }
                         showToast(errorMsg, 'bg-danger');
                     }
                 });

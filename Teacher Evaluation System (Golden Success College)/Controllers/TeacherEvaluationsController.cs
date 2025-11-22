@@ -19,12 +19,77 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             _context = context;
         }
 
+        //// GET: TeacherEvaluations/Index - Shows evaluation history
+        //public async Task<IActionResult> Index(
+        //    string filterTeacher,
+        //    string filterSubject,
+        //    DateTime? filterDateFrom,
+        //    DateTime? filterDateTo)
+        //{
+        //    var studentId = GetCurrentStudentId();
+        //    var isAdmin = User.IsInRole("Admin") || User.IsInRole("Super Admin");
+
+        //    IQueryable<Evaluation> query = _context.Evaluation
+        //        .Include(e => e.Teacher)
+        //        .Include(e => e.Subject)
+        //        .Include(e => e.Student)
+        //        .Include(e => e.Scores)
+        //            .ThenInclude(s => s.Question)
+        //                .ThenInclude(q => q.Criteria);
+
+        //    // If student – restrict to his own evaluations
+        //    if (!isAdmin)
+        //    {
+        //        query = query.Where(e => e.StudentId == studentId);
+        //    }
+
+        //    // Filters
+        //    if (!string.IsNullOrWhiteSpace(filterTeacher))
+        //        query = query.Where(e => e.Teacher.FullName.Contains(filterTeacher));
+
+        //    if (!string.IsNullOrWhiteSpace(filterSubject))
+        //        query = query.Where(e =>
+        //            e.Subject.SubjectName.Contains(filterSubject) ||
+        //            e.Subject.SubjectCode.Contains(filterSubject));
+
+        //    if (filterDateFrom.HasValue)
+        //        query = query.Where(e => e.DateEvaluated >= filterDateFrom.Value.Date);
+
+        //    if (filterDateTo.HasValue)
+        //        query = query.Where(e => e.DateEvaluated <= filterDateTo.Value.Date.AddDays(1).AddTicks(-1));
+
+        //    var evaluations = await query
+        //        .OrderByDescending(e => e.DateEvaluated)
+        //        .ToListAsync();
+
+        //    // Build ViewModel
+        //    var viewModel = new EvaluationListViewModel
+        //    {
+        //        FilterTeacherName = filterTeacher,
+        //        FilterSubjectName = filterSubject,
+        //        FilterDateFrom = filterDateFrom,
+        //        FilterDateTo = filterDateTo,
+        //        Evaluations = evaluations.Select(e => new EvaluationListItemViewModel
+        //        {
+        //            EvaluationId = e.EvaluationId,
+        //            SubjectName = $"{e.Subject?.SubjectCode} - {e.Subject?.SubjectName}",
+        //            TeacherName = e.Teacher?.FullName,
+        //            TeacherPicturePath = string.IsNullOrEmpty(e.Teacher?.PicturePath)
+        //                                 ? "/images/default-teacher.png"
+        //                                 : e.Teacher.PicturePath,
+        //            StudentName = e.IsAnonymous ? "Anonymous" : e.Student?.FullName,
+        //            IsAnonymous = e.IsAnonymous,
+        //            DateEvaluated = e.DateEvaluated,
+        //            Comments = e.Comments,
+        //            AverageScore = e.AverageScore
+        //        }).ToList()
+        //    };
+
+        //    return View(viewModel);
+        //}
+
         // GET: TeacherEvaluations/Index - Shows evaluation history
-        public async Task<IActionResult> Index(
-            string filterTeacher,
-            string filterSubject,
-            DateTime? filterDateFrom,
-            DateTime? filterDateTo)
+        public async Task<IActionResult> Index()
         {
             var studentId = GetCurrentStudentId();
             var isAdmin = User.IsInRole("Admin") || User.IsInRole("Super Admin");
@@ -33,59 +98,31 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
                 .Include(e => e.Teacher)
                 .Include(e => e.Subject)
                 .Include(e => e.Student)
-                .Include(e => e.Scores)
-                    .ThenInclude(s => s.Question)
-                        .ThenInclude(q => q.Criteria);
+                .Include(e => e.Scores);
 
-            // If student – restrict to his own evaluations
             if (!isAdmin)
             {
                 query = query.Where(e => e.StudentId == studentId);
             }
 
-            // Filters
-            if (!string.IsNullOrWhiteSpace(filterTeacher))
-                query = query.Where(e => e.Teacher.FullName.Contains(filterTeacher));
-
-            if (!string.IsNullOrWhiteSpace(filterSubject))
-                query = query.Where(e =>
-                    e.Subject.SubjectName.Contains(filterSubject) ||
-                    e.Subject.SubjectCode.Contains(filterSubject));
-
-            if (filterDateFrom.HasValue)
-                query = query.Where(e => e.DateEvaluated >= filterDateFrom.Value.Date);
-
-            if (filterDateTo.HasValue)
-                query = query.Where(e => e.DateEvaluated <= filterDateTo.Value.Date.AddDays(1).AddTicks(-1));
-
             var evaluations = await query
                 .OrderByDescending(e => e.DateEvaluated)
-                .ToListAsync();
-
-            // Build ViewModel
-            var viewModel = new EvaluationListViewModel
-            {
-                FilterTeacherName = filterTeacher,
-                FilterSubjectName = filterSubject,
-                FilterDateFrom = filterDateFrom,
-                FilterDateTo = filterDateTo,
-                Evaluations = evaluations.Select(e => new EvaluationListItemViewModel
+                .Select(e => new EvaluationListItemViewModel
                 {
                     EvaluationId = e.EvaluationId,
-                    SubjectName = $"{e.Subject?.SubjectCode} - {e.Subject?.SubjectName}",
-                    TeacherName = e.Teacher?.FullName,
-                    TeacherPicturePath = string.IsNullOrEmpty(e.Teacher?.PicturePath)
-                                         ? "/images/default-teacher.png"
-                                         : e.Teacher.PicturePath,
-                    StudentName = e.IsAnonymous ? "Anonymous" : e.Student?.FullName,
+                    SubjectName = $"{e.Subject.SubjectCode} - {e.Subject.SubjectName}",
+                    TeacherName = e.Teacher.FullName,
+                    TeacherPicturePath = string.IsNullOrEmpty(e.Teacher.PicturePath)
+                        ? "/images/default-teacher.png"
+                        : e.Teacher.PicturePath,
+                    StudentName = e.IsAnonymous && !isAdmin ? "Anonymous" : e.Student.FullName,
                     IsAnonymous = e.IsAnonymous,
                     DateEvaluated = e.DateEvaluated,
-                    Comments = e.Comments,
                     AverageScore = e.AverageScore
-                }).ToList()
-            };
+                })
+                .ToListAsync();
 
-            return View(viewModel);
+            return View(evaluations);
         }
 
 
