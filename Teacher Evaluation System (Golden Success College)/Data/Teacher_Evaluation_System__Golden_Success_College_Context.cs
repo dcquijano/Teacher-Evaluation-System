@@ -9,7 +9,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Data
 {
     public class Teacher_Evaluation_System__Golden_Success_College_Context : DbContext
     {
-        public Teacher_Evaluation_System__Golden_Success_College_Context (DbContextOptions<Teacher_Evaluation_System__Golden_Success_College_Context> options)
+        public Teacher_Evaluation_System__Golden_Success_College_Context(DbContextOptions<Teacher_Evaluation_System__Golden_Success_College_Context> options)
             : base(options)
         {
         }
@@ -25,16 +25,16 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Data
         public DbSet<Teacher_Evaluation_System__Golden_Success_College_.Models.Subject> Subject { get; set; } = default!;
         public DbSet<Teacher_Evaluation_System__Golden_Success_College_.Models.Section> Section { get; set; } = default!;
         public DbSet<Teacher_Evaluation_System__Golden_Success_College_.Models.Level> Level { get; set; } = default!;
-
         public DbSet<Teacher_Evaluation_System__Golden_Success_College_.Models.Enrollment> Enrollment { get; set; } = default!;
-
         public DbSet<Teacher_Evaluation_System__Golden_Success_College_.Models.ActivityLog> ActivityLog { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // 🔵 FIX MULTIPLE CASCADE PATH ERROR
+            // ============================================
+            // EVALUATION RELATIONSHIPS - Prevent Multiple Cascade Paths
+            // ============================================
             modelBuilder.Entity<Evaluation>()
                 .HasOne(e => e.Teacher)
                 .WithMany(t => t.Evaluations)
@@ -53,12 +53,20 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Data
                 .HasForeignKey(e => e.SubjectId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Fix cascade issue: Teacher → Level
+            // Evaluation → Scores (CASCADE DELETE)
+            modelBuilder.Entity<Evaluation>()
+                .HasMany(e => e.Scores)
+                .WithOne(s => s.Evaluation)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ============================================
+            // TEACHER & ENROLLMENT RELATIONSHIPS
+            // ============================================
             modelBuilder.Entity<Teacher>()
                 .HasOne(t => t.Level)
                 .WithMany()
                 .HasForeignKey(t => t.LevelId)
-                .OnDelete(DeleteBehavior.Restrict); // or DeleteBehavior.NoAction
+                .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<Enrollment>()
                 .HasOne(e => e.Student)
@@ -72,6 +80,9 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Data
                 .HasForeignKey(e => e.SubjectId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ============================================
+            // SUBJECT RELATIONSHIPS
+            // ============================================
             modelBuilder.Entity<Subject>()
                .HasOne(s => s.Level)
                .WithMany(l => l.Subjects)
@@ -84,14 +95,52 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Data
                .HasForeignKey(s => s.SectionId)
                .OnDelete(DeleteBehavior.Restrict);
 
+            // ============================================
+            // ACTIVITY LOG RELATIONSHIPS - NO ACTION ON DELETE
+            // SQL Server doesn't allow multiple cascade paths, so we use NoAction
+            // We'll manually handle ActivityLog deletion when needed
+            // ============================================
 
-           // Existing relationships
-            modelBuilder.Entity<Evaluation>()
-                .HasMany(e => e.Scores)
-                .WithOne(s => s.Evaluation)
-                .OnDelete(DeleteBehavior.Cascade);
+            // ActivityLog → Evaluation (NO ACTION when Evaluation is deleted)
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.Evaluation)
+                .WithMany()
+                .HasForeignKey(a => a.EvaluationId)
+                .OnDelete(DeleteBehavior.NoAction);
 
-            // Add indexes for ActivityLog for better performance
+            // ActivityLog → Student (NO ACTION when Student is deleted)
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.Student)
+                .WithMany()
+                .HasForeignKey(a => a.StudentId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // ActivityLog → User (NO ACTION when User is deleted)
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // ActivityLog → Teacher (NO ACTION when Teacher is deleted)
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.Teacher)
+                .WithMany()
+                .HasForeignKey(a => a.TeacherId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // ActivityLog → Subject (NO ACTION when Subject is deleted)
+            modelBuilder.Entity<ActivityLog>()
+                .HasOne(a => a.Subject)
+                .WithMany()
+                .HasForeignKey(a => a.SubjectId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            // ============================================
+            // INDEXES FOR PERFORMANCE
+            // ============================================
+
+            // ActivityLog indexes for faster queries
             modelBuilder.Entity<ActivityLog>()
                 .HasIndex(a => a.Timestamp);
 
@@ -104,8 +153,8 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Data
             modelBuilder.Entity<ActivityLog>()
                 .HasIndex(a => a.UserId);
 
+            modelBuilder.Entity<ActivityLog>()
+                .HasIndex(a => a.EvaluationId);
         }
-
-
     }
 }

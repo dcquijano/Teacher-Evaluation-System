@@ -321,40 +321,6 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             return View(viewModel);
         }
 
-        // GET: TeacherEvaluations/Delete/5
-        [Authorize(Roles = "Admin,Super Admin")]
-        public async Task<IActionResult> Delete(int? id)
-        {
-            if (id == null)
-            {
-                return NotFound();
-            }
-
-            var evaluation = await _context.Evaluation
-                .Include(e => e.Teacher)
-                .Include(e => e.Subject)
-                .Include(e => e.Student)
-                .FirstOrDefaultAsync(m => m.EvaluationId == id);
-
-            if (evaluation == null)
-            {
-                return NotFound();
-            }
-
-            var viewModel = new EvaluationListItemViewModel
-            {
-                EvaluationId = evaluation.EvaluationId,
-                TeacherName = evaluation.Teacher?.FullName,
-                TeacherPicturePath = evaluation.Teacher?.PicturePath,
-                SubjectName = $"{evaluation.Subject?.SubjectCode} - {evaluation.Subject?.SubjectName}",
-                StudentName = evaluation.IsAnonymous ? "Anonymous" : evaluation.Student?.FullName,
-                DateEvaluated = evaluation.DateEvaluated,
-                IsAnonymous = evaluation.IsAnonymous
-            };
-
-            return View(viewModel);
-        }
-
         // POST: TeacherEvaluations/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
@@ -367,14 +333,86 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
 
             if (evaluation != null)
             {
+                // STEP 1: Delete related ActivityLogs first (to avoid FK constraint)
+                var relatedLogs = await _context.ActivityLog
+                    .Where(a => a.EvaluationId == id)
+                    .ToListAsync();
+
+                if (relatedLogs.Any())
+                {
+                    _context.ActivityLog.RemoveRange(relatedLogs);
+                }
+
+                // STEP 2: Delete Scores (cascade will handle this, but being explicit)
                 _context.Score.RemoveRange(evaluation.Scores);
+
+                // STEP 3: Delete Evaluation
                 _context.Evaluation.Remove(evaluation);
+
                 await _context.SaveChangesAsync();
 
                 TempData["SuccessMessage"] = "Evaluation deleted successfully.";
             }
 
             return RedirectToAction(nameof(Index));
+        }
+
+        // ============================================
+        // API Controller - Delete Method
+        // ============================================
+
+        // DELETE: api/TeacherEvaluationsApi/5
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin,Super Admin")]
+        public async Task<IActionResult> DeleteEvaluation(int id)
+        {
+            try
+            {
+                var evaluation = await _context.Evaluation
+                    .Include(e => e.Scores)
+                    .FirstOrDefaultAsync(e => e.EvaluationId == id);
+
+                if (evaluation == null)
+                {
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Evaluation not found"
+                    });
+                }
+
+                // STEP 1: Delete related ActivityLogs first
+                var relatedLogs = await _context.ActivityLog
+                    .Where(a => a.EvaluationId == id)
+                    .ToListAsync();
+
+                if (relatedLogs.Any())
+                {
+                    _context.ActivityLog.RemoveRange(relatedLogs);
+                }
+
+                // STEP 2: Delete Scores
+                _context.Score.RemoveRange(evaluation.Scores);
+
+                // STEP 3: Delete Evaluation
+                _context.Evaluation.Remove(evaluation);
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Evaluation deleted successfully"
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = $"Error deleting evaluation: {ex.Message}"
+                });
+            }
         }
 
         private int GetCurrentStudentId()

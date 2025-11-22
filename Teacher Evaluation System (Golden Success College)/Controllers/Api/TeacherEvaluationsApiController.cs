@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using Teacher_Evaluation_System__Golden_Success_College_.Data;
 using Teacher_Evaluation_System__Golden_Success_College_.Models;
-using Teacher_Evaluation_System__Golden_Success_College_.Helper;
+using Teacher_Evaluation_System__Golden_Success_College_.Services;
 
 namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
 {
@@ -14,10 +14,14 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
     public class TeacherEvaluationsApiController : ControllerBase
     {
         private readonly Teacher_Evaluation_System__Golden_Success_College_Context _context;
+        private readonly IActivityLogService _activityLogService;
 
-        public TeacherEvaluationsApiController(Teacher_Evaluation_System__Golden_Success_College_Context context)
+        public TeacherEvaluationsApiController(
+            Teacher_Evaluation_System__Golden_Success_College_Context context,
+            IActivityLogService activityLogService)
         {
             _context = context;
+            _activityLogService = activityLogService;
         }
 
         // GET: api/TeacherEvaluationsApi
@@ -197,6 +201,15 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
                 }
 
                 var studentId = GetCurrentStudentId();
+                var ipAddress = GetClientIpAddress();
+
+                // Log evaluation started
+                await _activityLogService.LogEvaluationStartedAsync(
+                    studentId,
+                    model.TeacherId,
+                    model.SubjectId,
+                    ipAddress
+                );
 
                 // Verify enrollment
                 var isEnrolled = await _context.Enrollment
@@ -246,6 +259,15 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
 
                 _context.Evaluation.Add(evaluation);
                 await _context.SaveChangesAsync();
+
+                // Log evaluation completed
+                await _activityLogService.LogEvaluationCompletedAsync(
+                    studentId,
+                    evaluation.EvaluationId,
+                    model.TeacherId,
+                    model.SubjectId,
+                    ipAddress
+                );
 
                 return Ok(new
                 {
@@ -307,7 +329,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
             }
         }
 
-        // Helper method
+        // Helper methods
         private int GetCurrentStudentId()
         {
             var studentIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -316,6 +338,18 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
                 throw new UnauthorizedAccessException("User not authenticated");
             }
             return int.Parse(studentIdClaim);
+        }
+
+        private string GetClientIpAddress()
+        {
+            var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            if (HttpContext.Request.Headers.ContainsKey("X-Forwarded-For"))
+            {
+                ipAddress = HttpContext.Request.Headers["X-Forwarded-For"].ToString().Split(',')[0].Trim();
+            }
+
+            return ipAddress ?? "Unknown";
         }
     }
 
