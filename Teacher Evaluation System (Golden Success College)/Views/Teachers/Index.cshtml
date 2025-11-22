@@ -248,19 +248,7 @@
                 var teacherId = $('#TeacherId').val();
                 var isEdit = teacherId && teacherId != '';
 
-                // Validation
-                if (!$('#FullName').val().trim()) {
-                    showToast('Full Name is required', 'bg-danger');
-                    return;
-                }
-                if (!$('#Department').val().trim()) {
-                    showToast('Department is required', 'bg-danger');
-                    return;
-                }
-                if (!$('#LevelId').val()) {
-                    showToast('Please select a level', 'bg-danger');
-                    return;
-                }
+             
 
                 var formData = new FormData();
                 formData.append('fullName', $('#FullName').val().trim());

@@ -24,8 +24,11 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
         public async Task<IActionResult> Index()
         {
             var questions = await _context.Question
-        .Include(q => q.Criteria)
-        .ToListAsync();
+                .Include(q => q.Criteria)
+                .ToListAsync();
+
+            // Populate ViewBag.CriteriaId for the dropdown
+            ViewBag.CriteriaId = new SelectList(await _context.Criteria.ToListAsync(), "CriteriaId", "Name");
 
             var grouped = questions
                 .GroupBy(q => new { q.CriteriaId, q.Criteria.Name })
@@ -38,9 +41,9 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
                 })
                 .ToList();
 
-
             return View(grouped);
         }
+
         // GET: Questions/Details/5
         public async Task<IActionResult> Details(int? id)
         {
