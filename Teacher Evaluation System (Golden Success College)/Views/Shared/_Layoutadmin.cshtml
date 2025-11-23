@@ -52,7 +52,6 @@
                 }
                 @if (isAdmin)
                 {
-                    <li><a asp-controller="Users" asp-action="Index"><i class='bx bx-user'></i><span class="links_name">Users</span></a></li>
                     <li><a asp-controller="Levels" asp-action="Index"><i class='bx bx-grid'></i><span class="links_name">Levels</span></a></li>
                     <li><a asp-controller="Sections" asp-action="Index"><i class='bx bx-grid-alt'></i><span class="links_name">Sections</span></a></li>
                     <li><a asp-controller="Enrollments" asp-action="Index"><i class='bx bx-list-plus'></i><span class="links_name">Enrollments</span></a></li>
@@ -74,8 +73,8 @@
                 <div class="profile-details">
                     <img src="/background/images.png" alt="profileImg">
                     <div class="name_job">
-                        <div class="name">@fullname</div>
-                        <div class="job">@role</div>
+                        <div class="name text-center">@fullname</div>
+                        <div class="job text-center">@role</div>
                     </div>
                 </div>
                 <form asp-controller="Auth" asp-action="Logout" method="post" class="m-0">
