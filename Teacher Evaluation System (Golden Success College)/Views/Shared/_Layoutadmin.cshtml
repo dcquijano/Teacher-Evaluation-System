@@ -23,7 +23,10 @@
 </head>
 <body>
     <nav class="navbar navbar-light bg-light">
-        <a class="navbar-brand" href="#"><img src="~/images/logo.svg" width="30" height="30" alt="Logo"></a>
+        <button class="btn d-md-none" id="mobile-menu-btn" style="position: fixed; top: 10px; left: 10px; z-index: 1000; background: #11101d; color: white; border: none; padding: 8px 12px; border-radius: 5px;">
+            <i class='bx bx-menu' style="font-size: 24px;"></i>
+        </button>
+        <a class="navbar-brand" href="#"></a>
     </nav>
     @if (User.Identity?.IsAuthenticated ?? false)
     {
@@ -64,7 +67,7 @@
                 }
                 @if (isStudent)
                 {
-                  
+
                     <li><a asp-controller="TeacherEvaluations" asp-action="Index"><i class='bx bx-clipboard'></i><span class="links_name">Teacher Evaluations</span></a></li>
                 }
             </ul>
@@ -130,9 +133,44 @@
         document.addEventListener("DOMContentLoaded", function () {
             const sidebar = document.getElementById("sidebar");
             const toggleBtn = document.getElementById("btn");
+            const mobileMenuBtn = document.getElementById("mobile-menu-btn");
 
-            toggleBtn?.addEventListener("click", () => {
+            if (!sidebar) {
+                console.error("Sidebar not found! User might not be authenticated.");
+                return;
+            }
+
+            // Create overlay for mobile
+            const overlay = document.createElement('div');
+            overlay.className = 'sidebar-overlay';
+            document.body.appendChild(overlay);
+
+            function toggleSidebar() {
                 sidebar.classList.toggle("open");
+
+                // On mobile, show/hide overlay
+                if (window.innerWidth <= 700) {
+                    overlay.classList.toggle("active");
+                }
+            }
+
+            // Toggle from sidebar button
+            toggleBtn?.addEventListener("click", toggleSidebar);
+
+            // Toggle from mobile menu button
+            mobileMenuBtn?.addEventListener("click", toggleSidebar);
+
+            // Close sidebar when clicking overlay
+            overlay.addEventListener("click", function() {
+                sidebar.classList.remove("open");
+                overlay.classList.remove("active");
+            });
+
+            // Close sidebar on window resize if needed
+            window.addEventListener("resize", function() {
+                if (window.innerWidth > 700) {
+                    overlay.classList.remove("active");
+                }
             });
 
             // Nav links hover effect
@@ -145,6 +183,11 @@
                     link.style.transform = "translateX(0)";
                 });
             });
+
+            // Auto-open sidebar on desktop
+            if (window.innerWidth > 700) {
+                sidebar.classList.add("open");
+            }
         });
     </script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
