@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Teacher_Evaluation_System__Golden_Success_College_.Helper;
 using Teacher_Evaluation_System__Golden_Success_College_.Models;
 
 namespace Teacher_Evaluation_System__Golden_Success_College_.Data
@@ -167,6 +168,85 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Data
 
                 // Ensure only one current period at a time (handled in service/controller)
             });
+
+
+            // ============================================
+            // SEED ROLES
+            // ============================================
+
+            modelBuilder.Entity<Role>().HasData(
+                  new Role { RoleId = 1, Name = "Super Admin" },
+                  new Role { RoleId = 2, Name = "Admin" },
+                  new Role { RoleId = 3, Name = "Student" }
+              );
+
+            // ============================================
+            // SEED DEFAULT USERS
+            // ============================================
+
+            // Hash passwords for default accounts
+            string superAdminPassword = PasswordHelper.HashPassword("superadmin"); // you can change default password
+            string adminPassword = PasswordHelper.HashPassword("admin");           // you can change default password
+
+            modelBuilder.Entity<User>().HasData(
+                new User
+                {
+                    UserId = 1,
+                    FullName = "Default Super Admin",
+                    Email = "ninojusay1@gmail.com",
+                    Password = superAdminPassword,
+                    RoleId = 1
+                },
+                new User
+                {
+                    UserId = 2,
+                    FullName = "Default Admin",
+                    Email = "admin@example.com",
+                    Password = adminPassword,
+                    RoleId = 2
+                }
+            );
+
+            // ============================================
+            // SEED DEFAULT CRITERIA
+            // ============================================
+            modelBuilder.Entity<Criteria>().HasData(
+                new Criteria
+                {
+                    CriteriaId = 1,
+                    Name = "A. TEACHER ACTIONS (Teaching Practices)"
+                },
+                new Criteria
+                {
+                    CriteriaId = 2,
+                    Name = "B. TEACHER-STUDENT INTERACTION"
+                }
+            );
+
+
+            // ============================================
+            // SEED QUESTIONS
+            // ============================================
+            modelBuilder.Entity<Question>().HasData(
+                // Criteria 1: TEACHER ACTIONS
+                new Question { QuestionId = 1, CriteriaId = 1, Description = "My teacher clearly explains the lesson and learning goals." },
+                new Question { QuestionId = 2, CriteriaId = 1, Description = "My teacher uses examples, activities, and materials that make the lesson easier to understand." },
+                new Question { QuestionId = 3, CriteriaId = 1, Description = "My teacher checks if students understand the lesson (through questions, activities, or assessments)." },
+                new Question { QuestionId = 4, CriteriaId = 1, Description = "My teacher gives feedback, advice, or help when students find it difficult to learn." },
+                new Question { QuestionId = 5, CriteriaId = 1, Description = "My teacher manages the class well (time, rules, order) so learning is not disturbed." },
+                new Question { QuestionId = 6, CriteriaId = 1, Description = "My teacher asks questions that make students think more deeply or critically." },
+
+                // Criteria 2: TEACHER-STUDENT INTERACTION
+                new Question { QuestionId = 7, CriteriaId = 2, Description = "My teacher encourages us to be active and engaged in learning tasks." },
+                new Question { QuestionId = 8, CriteriaId = 2, Description = "My teacher guides us in using different learning materials and technology to achieve our goals." },
+                new Question { QuestionId = 9, CriteriaId = 2, Description = "My teacher motivates us to share ideas, reflections, or solutions to real-life challenges." },
+                new Question { QuestionId = 10, CriteriaId = 2, Description = "My teacher promotes collaboration and meaningful interactions among students." },
+                new Question { QuestionId = 11, CriteriaId = 2, Description = "My teacher helps us explain and understand how our work relates to learning goals." },
+                new Question { QuestionId = 12, CriteriaId = 2, Description = "My teacher encourages us to ask questions to clarify or deepen our understanding." },
+                new Question { QuestionId = 13, CriteriaId = 2, Description = "My teacher helps us connect our lessons to daily life and real-world situations." },
+                new Question { QuestionId = 14, CriteriaId = 2, Description = "My teacher integrates 21st century skills (communication, collaboration, critical thinking, creativity) into lessons." },
+                new Question { QuestionId = 15, CriteriaId = 2, Description = "My teacher connects our learning with the school’s PVMGO (Philosophy, Vision, Mission, Goals, and Objectives)." }
+            );
         }
     }
 }
