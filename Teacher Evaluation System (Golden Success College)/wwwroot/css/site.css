@@ -355,3 +355,187 @@ body {
     .nav-list::-webkit-scrollbar-thumb:hover {
         background: rgba(255,255,255,0.3);
     }
+/* ============================
+   DROPDOWN IMPROVEMENTS
+   ============================ */
+
+/* Base dropdown container */
+.nav-list .dropdown {
+    width: 100%;
+}
+
+/* Dropdown button - matches nav link style */
+.nav-list .dropdown-btn {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    color: #fff;
+    text-decoration: none;
+    transition: background 0.28s, transform 0.28s, width 0.4s;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    padding: 0;
+    justify-content: center;
+}
+
+    /* Hover effect for dropdown button */
+    .nav-list .dropdown-btn:hover {
+        background: rgba(37, 140, 251, 0.2);
+        transform: translateX(5px);
+    }
+
+/* Expanded sidebar spacing */
+.sidebar.open .dropdown-btn {
+    width: calc(100% - 36px);
+    padding: 12px 18px;
+    margin: 0 18px 10px 18px;
+    justify-content: flex-start;
+}
+
+/* Dropdown button icon */
+.dropdown-btn i:first-child {
+    font-size: 20px;
+    min-width: 20px;
+}
+
+/* Dropdown menu container */
+.nav-list .dropdown .dropdown-menu {
+    display: none;
+    background: #0e0d18;
+    padding: 5px 0;
+    margin: 0 0 10px 0;
+    border-left: 3px solid #258cfb;
+    list-style: none;
+}
+
+/* Show dropdown when open */
+.nav-list .dropdown.open .dropdown-menu {
+    display: block;
+}
+
+/* Dropdown menu items */
+.dropdown-menu li {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.sidebar.open .dropdown-menu li {
+    justify-content: flex-start;
+}
+
+/* Dropdown item links */
+.dropdown-menu li a {
+    padding: 10px 18px !important;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.92em;
+    width: calc(100% - 36px);
+    color: #bbb;
+    border-radius: 6px;
+    margin: 3px 18px !important;
+    transition: all 0.25s;
+    text-decoration: none;
+}
+
+    /* Hover effect for dropdown items */
+    .dropdown-menu li a:hover {
+        background: #1d1b31;
+        color: #fff;
+        transform: translateX(3px);
+    }
+
+/* Arrow rotation */
+.dropdown-btn .arrow {
+    margin-left: auto;
+    font-size: 18px;
+    transition: transform 0.3s;
+}
+
+.dropdown.open .dropdown-btn .arrow {
+    transform: rotate(180deg);
+}
+
+/* Hide arrow in collapsed sidebar */
+.sidebar:not(.open) .dropdown-btn .arrow {
+    display: none;
+}
+
+/* ==============================
+   COLLAPSED SIDEBAR DROPDOWN
+   ============================== */
+
+.sidebar:not(.open) .dropdown-btn {
+    justify-content: center;
+    padding: 0;
+    gap: 0;
+}
+
+/* In collapsed mode, show only icons */
+.sidebar:not(.open) .dropdown-menu {
+    margin-left: 0;
+    border-left: none;
+    padding-left: 0;
+}
+
+    .sidebar:not(.open) .dropdown-menu li {
+        justify-content: center;
+    }
+
+        .sidebar:not(.open) .dropdown-menu li a {
+            justify-content: center;
+            padding: 10px 0 !important;
+            width: 48px;
+            margin: 3px auto !important;
+        }
+
+    /* Hide text in collapsed mode */
+    .sidebar:not(.open) .dropdown-menu .links_name {
+        display: none !important;
+    }
+
+/* Active state for dropdown items */
+.dropdown-menu li a.active {
+    background: rgba(37, 140, 251, 0.3);
+    color: #fff;
+}
+
+/* Smooth transition for dropdown content */
+.dropdown-menu {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out;
+}
+
+/* ==============================
+   MOBILE RESPONSIVE DROPDOWN
+   ============================== */
+
+@media (max-width: 700px) {
+    .sidebar .dropdown-btn {
+        width: calc(100% - 36px);
+        padding: 12px 18px;
+        margin: 0 18px 10px 18px;
+        justify-content: flex-start;
+    }
+
+        .sidebar .dropdown-btn .arrow {
+            display: block;
+        }
+
+    .sidebar .dropdown-menu li a {
+        width: calc(100% - 36px);
+        padding: 10px 18px !important;
+        margin: 3px 18px !important;
+        justify-content: flex-start;
+    }
+
+    .sidebar .dropdown-menu .links_name {
+        display: inline !important;
+    }
+}

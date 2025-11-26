@@ -1,9 +1,11 @@
 ﻿@model Teacher_Evaluation_System__Golden_Success_College_.ViewModels.LoginViewModel
-
 @{
     ViewData["Title"] = "Login";
     Layout = "_Layout";
 }
+
+<!-- Add Boxicons CDN -->
+<link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
 
 <style>
     body, html {
@@ -29,6 +31,43 @@
         margin: 0 auto 1.5rem;
         max-width: 120px;
     }
+
+    /* Password Toggle Styling */
+    .password-wrapper {
+        position: relative;
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #6c757d;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        transition: color 0.2s;
+        z-index: 10;
+    }
+
+        .password-toggle:hover {
+            color: #495057;
+        }
+
+        .password-toggle i {
+            font-size: 20px;
+            pointer-events: none;
+        }
+
+    .password-wrapper input {
+        padding-right: 45px;
+    }
 </style>
 
 <div class="login-container">
@@ -36,7 +75,6 @@
         <div class="card-body">
             <!-- Logo -->
             <img src="~/images/logo/logo.png" alt="Logo" class="login-logo" />
-
             <h3 class="text-center mb-4">Login</h3>
 
             <form asp-action="Login" method="post">
@@ -48,7 +86,19 @@
 
                 <div class="mb-3">
                     <label asp-for="Password" class="form-label"></label>
-                    <input asp-for="Password" class="form-control" type="password" placeholder="Enter your password" />
+                    <div class="password-wrapper">
+                        <input asp-for="Password"
+                               id="password-input"
+                               class="form-control"
+                               type="password"
+                               placeholder="Enter your password" />
+                        <button type="button"
+                                class="password-toggle"
+                                id="toggle-password"
+                                aria-label="Toggle password visibility">
+                            <i class='bx bx-hide' id="toggle-icon"></i>
+                        </button>
+                    </div>
                     <span asp-validation-for="Password" class="text-danger"></span>
                 </div>
 
@@ -76,15 +126,38 @@
 
     <script>
         $(document).ready(function () {
-            // Read TempData messages safely
+            // Toastr messages
             var successMessage = @Html.Raw(Json.Serialize(TempData["SuccessMessage"] ?? ""));
             if (successMessage) {
                 toastr.success(successMessage, "Success", { timeOut: 5000, progressBar: true });
             }
-
             var errorMessage = @Html.Raw(Json.Serialize(TempData["ErrorMessage"] ?? ""));
             if (errorMessage) {
                 toastr.error(errorMessage, "Error", { timeOut: 5000, progressBar: true });
+            }
+
+            // Password Toggle Functionality
+            const togglePassword = document.getElementById('toggle-password');
+            const passwordInput = document.getElementById('password-input');
+            const toggleIcon = document.getElementById('toggle-icon');
+
+            if (togglePassword && passwordInput && toggleIcon) {
+                togglePassword.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    // Toggle the input type
+                    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                    passwordInput.setAttribute('type', type);
+
+                    // Toggle the icon
+                    if (type === 'password') {
+                        toggleIcon.classList.remove('bx-show');
+                        toggleIcon.classList.add('bx-hide');
+                    } else {
+                        toggleIcon.classList.remove('bx-hide');
+                        toggleIcon.classList.add('bx-show');
+                    }
+                });
             }
         });
     </script>
