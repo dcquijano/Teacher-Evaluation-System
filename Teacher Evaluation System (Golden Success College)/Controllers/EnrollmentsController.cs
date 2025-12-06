@@ -84,9 +84,77 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
                 .ThenBy(e => e.Student.FullName)
                 .ToListAsync();
 
+            // GROUP BY STUDENT and count enrollments
+            var enrollmentCounts = enrollments
+                .GroupBy(e => e.StudentId)
+                .ToDictionary(g => g.Key, g => g.Count());
+
+            // Pass the counts to the view
+            ViewBag.EnrollmentCounts = enrollmentCounts;
+
+            // Show unique students only
+            var uniqueEnrollments = enrollments
+                .GroupBy(e => e.StudentId)
+                .Select(g => g.First())
+                .ToList();
+
             ViewBag.SubjectId = new SelectList(await _context.Subject.ToListAsync(), "SubjectId", "SubjectName");
 
-            return View(enrollments);
+            return View(uniqueEnrollments);
+        }
+
+        // GET: Enrollments/GetStudentEnrollments (Used by the modal's AJAX)
+        [HttpGet]
+        public async Task<IActionResult> GetStudentEnrollments(int studentId)
+        {
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value);
+
+            // Security: Students can only view their own enrollments
+            if (userRole == "Student" && studentId != userId)
+            {
+                return Forbid();
+            }
+
+            var student = await _context.Student
+                .Include(s => s.Section)
+                    .ThenInclude(sec => sec.Level)
+                .FirstOrDefaultAsync(s => s.StudentId == studentId);
+
+            if (student == null)
+                return Json(new { success = false, message = "Student not found" });
+
+            var enrollments = await _context.Enrollment
+                .Include(e => e.Subject)
+                    .ThenInclude(s => s.Level)
+                .Include(e => e.Teacher)
+                .Where(e => e.StudentId == studentId)
+                .OrderBy(e => e.Subject.SubjectName)
+                .Select(e => new
+                {
+                    enrollmentId = e.EnrollmentId, // Crucial for modal actions!
+                    subjectId = e.SubjectId,
+                    subjectName = e.Subject.SubjectName,
+                    teacherId = e.TeacherId,
+                    teacherName = e.Teacher != null ? e.Teacher.FullName : "No Teacher Assigned",
+                    teacherPicture = e.Teacher != null ? e.Teacher.PicturePath : "/images/default-profile.png",
+                    levelName = e.Subject.Level != null ? e.Subject.Level.LevelName : ""
+                })
+                .ToListAsync();
+
+            return Json(new
+            {
+                success = true,
+                student = new
+                {
+                    studentId = student.StudentId,
+                    fullName = student.FullName,
+                    levelName = student.Section?.Level?.LevelName ?? "",
+                    sectionName = student.Section?.SectionName ?? ""
+                },
+                enrollments = enrollments,
+                totalEnrollments = enrollments.Count
+            });
         }
 
         // GET: Enrollments/GetSectionsByLevel - NEW METHOD
@@ -125,7 +193,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
 
             var student = await _context.Student
                 .Include(s => s.Section)
-                    .ThenInclude(sec => sec.Level)
+                .ThenInclude(sec => sec.Level)
                 .FirstOrDefaultAsync(s => s.StudentId == studentId);
 
             if (student == null)
@@ -134,13 +202,12 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers
             // Get already enrolled subject IDs for this student
             var enrolledSubjectIds = await _context.Enrollment
                 .Where(e => e.StudentId == studentId &&
-                           (!excludeEnrollmentId.HasValue || e.EnrollmentId != excludeEnrollmentId.Value))
+                            (!excludeEnrollmentId.HasValue || e.EnrollmentId != excludeEnrollmentId.Value))
                 .Select(e => e.SubjectId)
                 .Distinct()
                 .ToListAsync();
 
-            // Get subjects that match the student's LEVEL (not section, for flexibility)
-            // But you can change to match Section if subjects are section-specific
+            // Get subjects that match the student's LEVEL
             var allSubjects = await _context.Subject
                 .Include(s => s.Teacher)
                 .Include(s => s.Level)

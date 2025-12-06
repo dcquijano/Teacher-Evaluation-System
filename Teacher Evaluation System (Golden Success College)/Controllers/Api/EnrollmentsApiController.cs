@@ -126,6 +126,7 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
             }
 
             var student = await _context.Student
+                .Include(s => s.Section)
                 .Include(s => s.Level)
                 .FirstOrDefaultAsync(s => s.StudentId == model.StudentId);
 
@@ -157,10 +158,14 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
                     continue;
                 }
 
+                // Retrieve the student's actual section level for comparison (assuming student.Level is null)
+                var studentSectionLevelId = (await _context.Student.Include(s => s.Section).ThenInclude(sec => sec.Level).FirstOrDefaultAsync(s => s.StudentId == model.StudentId))
+                                          ?.Section?.LevelId;
+
                 // Level mismatch
-                if (subject.LevelId != student.LevelId)
+                if (subject.LevelId != studentSectionLevelId)
                 {
-                    errors.Add($"Cannot enroll in '{subject.SubjectName}' - level mismatch (Subject: {subject.Level?.LevelName}, Student: {student.Level?.LevelName})");
+                    errors.Add($"Cannot enroll in '{subject.SubjectName}' - level mismatch (Subject: {subject.Level?.LevelName}, Student: {student.Section?.Level?.LevelName})");
                     continue;
                 }
 
@@ -223,13 +228,17 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
             if (existing == null)
                 return NotFound(new { success = false, message = "Enrollment not found" });
 
-            // Validate student exists
+            // Fetch student with section/level details
             var student = await _context.Student
-                .Include(s => s.Level)
+                .Include(s => s.Section)
+                    .ThenInclude(sec => sec.Level)
                 .FirstOrDefaultAsync(s => s.StudentId == enrollment.StudentId);
 
             if (student == null)
                 return BadRequest(new { success = false, message = "Student not found" });
+
+            var studentLevelId = student.Section?.LevelId;
+
 
             // Validate subject exists and level matches
             var subject = await _context.Subject
@@ -239,30 +248,21 @@ namespace Teacher_Evaluation_System__Golden_Success_College_.Controllers.Api
             if (subject == null)
                 return BadRequest(new { success = false, message = "Subject not found" });
 
-            if (subject.LevelId != student.LevelId)
+            if (subject.LevelId != studentLevelId)
             {
                 return BadRequest(new
                 {
                     success = false,
-                    message = $"Level mismatch - Subject is for {subject.Level?.LevelName}, but student is in {student.Level?.LevelName}"
+                    message = $"Level mismatch - Subject is for {subject.Level?.LevelName}, but student is in {student.Section?.Level?.LevelName}"
                 });
             }
 
-            // Validate teacher exists and level matches
-            var teacher = await _context.Teacher
-                .Include(t => t.Level)
-                .FirstOrDefaultAsync(t => t.TeacherId == enrollment.TeacherId);
+            // Derive TeacherId from Subject (as done in POST)
+            enrollment.TeacherId = subject.TeacherId;
 
-            if (teacher == null)
-                return BadRequest(new { success = false, message = "Teacher not found" });
-
-            if (teacher.LevelId != student.LevelId)
+            if (subject.TeacherId == null || subject.TeacherId <= 0)
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = $"Level mismatch - Teacher teaches {teacher.Level?.LevelName}, but student is in {student.Level?.LevelName}"
-                });
+                return BadRequest(new { success = false, message = $"Subject '{subject.SubjectName}' has no assigned teacher." });
             }
 
             // Check for duplicate (excluding current record)
