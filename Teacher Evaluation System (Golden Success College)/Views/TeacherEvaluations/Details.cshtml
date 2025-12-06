@@ -7,14 +7,14 @@
 }
 
 <div class="container mt-4">
-   @*  <div class="row mb-4">
+    <div class="row mb-4">
         <div class="col-md-12">
             <h2><i class="bi bi-file-text"></i> Evaluation Details</h2>
             <a asp-action="Index" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Back to List
             </a>
         </div>
-    </div> *@
+    </div>
 
     <!-- Success Message -->
     @if (TempData["SuccessMessage"] != null)
@@ -273,9 +273,9 @@
     <!-- Action Buttons -->
     <div class="row mb-4">
         <div class="col-md-12">
-            <a asp-action="Index" class="btn btn-secondary">
+         @*    <a asp-action="Index" class="btn btn-secondary">
                 <i class="bi bi-arrow-left"></i> Back to List
-            </a>
+            </a> *@
             @if (isAdminOrSuperAdmin)
             {
                 <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
